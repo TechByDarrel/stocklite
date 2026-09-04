@@ -1,0 +1,6 @@
+import { router } from 'expo-router';
+import { View } from 'react-native';
+import { useStockLite } from '@/context/StockLiteContext';
+import { DebtRow, EmptyState, PrimaryButton, Screen, SectionHeader, StatCard } from '@/components/stock-ui';
+import { formatNaira } from '@/utils/currency';
+export default function DebtsScreen() { const { debts, markDebtPaid } = useStockLite(); const outstanding = debts.filter((debt) => debt.status !== 'Paid'); const total = outstanding.reduce((sum, debt) => sum + Math.max(0, debt.amount - debt.amountPaid), 0); return <Screen title="Debts" subtitle="Money owed to you"><StatCard label="Total outstanding" value={formatNaira(total)} accent /><PrimaryButton label="Add debt" onPress={() => router.push('/add-debt')} /><SectionHeader title="Customer balances" />{debts.length ? <View>{debts.map((debt) => <DebtRow key={debt.id} debt={debt} onPaid={() => debt.status !== 'Paid' && markDebtPaid(debt.id)} />)}</View> : <EmptyState title="No debts recorded" text="You're all caught up." />}</Screen>; }
