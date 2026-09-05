@@ -127,3 +127,23 @@ export async function deleteDebt(id: string): Promise<boolean> {
   const result = await db.runAsync(`DELETE FROM debts WHERE id = ? AND userId = ?`, [id, getActiveUserId()]);
   return (result.changes ?? 0) > 0;
 }
+
+export async function updateDebt(
+  id: string,
+  updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>
+): Promise<Debt | null> {
+  const db = await getDatabase();
+  const current = await getDebt(id);
+  if (!current) return null;
+  const now = new Date().toISOString();
+
+  const merged = { ...current, ...updates };
+  const status: DebtStatus = merged.amountPaid >= merged.amount ? 'Paid' : 'Outstanding';
+
+  await db.runAsync(
+    `UPDATE debts SET customerName = ?, description = ?, amount = ?, dueDate = ?, status = ?, updatedAt = ? WHERE id = ? AND userId = ?`,
+    [merged.customerName, merged.description, merged.amount, merged.dueDate, status, now, id, getActiveUserId()]
+  );
+
+  return { ...merged, status, updatedAt: now };
+}

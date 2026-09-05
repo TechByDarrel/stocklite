@@ -18,7 +18,11 @@ interface StockLiteContextValue {
   deleteProduct: (id: string) => Promise<void>;
   recordSale: (items: SaleItem[]) => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'amountPaid'>) => Promise<void>;
+  updateDebt: (id: string, updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>) => Promise<void>;
+  deleteDebt: (id: string) => Promise<void>;
   markDebtPaid: (id: string) => Promise<void>;
 }
 
@@ -32,7 +36,6 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize database and load data
   useEffect(() => {
     let cancelled = false;
     if (isAuthLoading || !user) {
@@ -47,11 +50,9 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
 
     const init = async () => {
       try {
-        // Initialize database
         await initializeDatabase();
         setActiveUser(user.id);
 
-        // Load all data from repositories
         const [loadedProducts, loadedSales, loadedExpenses, loadedDebts] = await Promise.all([
           productRepo.getProducts(),
           saleRepo.getSales(),
@@ -114,8 +115,6 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
     try {
       const newSale = await saleRepo.createSale(items);
       setSales((current) => [newSale, ...current]);
-
-      // Refresh products to reflect new quantities
       const updatedProducts = await productRepo.getProducts();
       setProducts(updatedProducts);
     } catch (error) {
@@ -134,12 +133,60 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
     }
   };
 
+  const updateExpense = async (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) => {
+    try {
+      const updated = await expenseRepo.updateExpense(id, updates);
+      if (updated) {
+        setExpenses((current) => current.map((e) => (e.id === id ? updated : e)));
+      }
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      throw error;
+    }
+  };
+
+  const deleteExpense = async (id: string) => {
+    try {
+      const success = await expenseRepo.deleteExpense(id);
+      if (success) {
+        setExpenses((current) => current.filter((e) => e.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      throw error;
+    }
+  };
+
   const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'amountPaid'>) => {
     try {
       const newDebt = await debtRepo.createDebt(debt);
       setDebts((current) => [newDebt, ...current]);
     } catch (error) {
       console.error('Failed to add debt:', error);
+      throw error;
+    }
+  };
+
+  const updateDebt = async (id: string, updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>) => {
+    try {
+      const updated = await debtRepo.updateDebt(id, updates);
+      if (updated) {
+        setDebts((current) => current.map((d) => (d.id === id ? updated : d)));
+      }
+    } catch (error) {
+      console.error('Failed to update debt:', error);
+      throw error;
+    }
+  };
+
+  const deleteDebt = async (id: string) => {
+    try {
+      const success = await debtRepo.deleteDebt(id);
+      if (success) {
+        setDebts((current) => current.filter((d) => d.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete debt:', error);
       throw error;
     }
   };
@@ -171,7 +218,11 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
         deleteProduct,
         recordSale,
         addExpense,
+        updateExpense,
+        deleteExpense,
         addDebt,
+        updateDebt,
+        deleteDebt,
         markDebtPaid,
       }}
     >

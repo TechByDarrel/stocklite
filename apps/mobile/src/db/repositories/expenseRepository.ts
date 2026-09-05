@@ -45,6 +45,24 @@ export async function deleteExpense(id: string): Promise<boolean> {
   return (result.changes ?? 0) > 0;
 }
 
+export async function updateExpense(
+  id: string,
+  updates: Partial<Omit<Expense, 'id' | 'createdAt'>>
+): Promise<Expense | null> {
+  const db = await getDatabase();
+  const current = await getExpense(id);
+  if (!current) return null;
+
+  const updated = { ...current, ...updates };
+
+  await db.runAsync(
+    `UPDATE expenses SET title = ?, amount = ?, category = ?, note = ? WHERE id = ? AND userId = ?`,
+    [updated.title, updated.amount, updated.category, updated.note || null, id, getActiveUserId()]
+  );
+
+  return updated;
+}
+
 export async function getExpensesByCategory(category: ExpenseCategory): Promise<Expense[]> {
   const db = await getDatabase();
   const expenses = await db.getAllAsync<Expense>(
