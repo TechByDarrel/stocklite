@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
-import { PropsWithChildren, ReactNode } from 'react';
+import { PropsWithChildren, ReactNode, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { formatNaira } from '@/utils/currency';
 import type { Debt, Expense, Product, Sale } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
-export const colors = { ink: '#16221c', muted: '#68756d', line: '#dbe4dc', paper: '#f4f7f3', white: '#ffffff', green: '#176b45', mint: '#dcefe4', yellow: '#f6e6b5', red: '#a13f32' };
+export const colors = { ink: '#1A2E22', muted: '#8B8172', line: '#E8E1D3', paper: '#F7F4EC', white: '#FFFFFF', green: '#2D5C3E', mint: '#E4EBE0', yellow: '#EFD9A8', red: '#C9622D' };
 
 export function Screen({ children, title, subtitle, action, back = false }: PropsWithChildren<{ title?: string; subtitle?: string; action?: ReactNode; back?: boolean }>) {
   const { isSignedIn, logout } = useAuth();
@@ -24,8 +24,47 @@ export function BottomNavigation() {
   return <View style={styles.nav}>{items.map(([label, path]) => <Pressable key={path} accessibilityRole="button" accessibilityLabel={label} style={styles.navItem} onPress={() => router.replace(path as never)}><Text style={styles.navIcon}>{label === 'Home' ? 'H' : label === 'Products' ? 'P' : label === 'Sales' ? 'S' : '+'}</Text><Text style={styles.navLabel}>{label}</Text></Pressable>)}</View>;
 }
 
-export function PrimaryButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) { return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.primary, disabled && styles.disabled]}><Text style={styles.primaryText}>{label}</Text></Pressable>; }
-export function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable onPress={onPress} style={styles.secondary}><Text style={styles.secondaryText}>{label}</Text></Pressable>; }
+export function PrimaryButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  return <Pressable
+    accessibilityRole="button"
+    disabled={disabled}
+    onPress={onPress}
+    onHoverIn={() => setHovered(true)}
+    onHoverOut={() => setHovered(false)}
+    onPressIn={() => setPressed(true)}
+    onPressOut={() => setPressed(false)}
+    style={[
+      styles.primary,
+      disabled && styles.disabled,
+      hovered && !disabled && styles.primaryHovered,
+      pressed && !disabled && styles.primaryPressed,
+    ]}
+  >
+    <Text style={styles.primaryText}>{label}</Text>
+  </Pressable>;
+}
+
+export function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  return <Pressable
+    onPress={onPress}
+    onHoverIn={() => setHovered(true)}
+    onHoverOut={() => setHovered(false)}
+    onPressIn={() => setPressed(true)}
+    onPressOut={() => setPressed(false)}
+    style={[
+      styles.secondary,
+      hovered && styles.secondaryHovered,
+      pressed && styles.secondaryPressed,
+    ]}
+  >
+    <Text style={styles.secondaryText}>{label}</Text>
+  </Pressable>;
+}
+
 export function SectionHeader({ title, action, onPress }: { title: string; action?: string; onPress?: () => void }) { return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{action && <Pressable onPress={onPress}><Text style={styles.link}>{action}</Text></Pressable>}</View>; }
 export function StatCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <View style={[styles.stat, accent && styles.statAccent]}><Text style={[styles.statLabel, accent && styles.lightText]}>{label}</Text><Text style={[styles.statValue, accent && styles.lightText]}>{value}</Text></View>; }
 export function EmptyState({ title, text }: { title: string; text: string }) { return <View style={styles.empty}><Text style={styles.emptyMark}>+</Text><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyText}>{text}</Text></View>; }
@@ -36,4 +75,51 @@ export function SaleRow({ sale, onPress }: { sale: Sale; onPress?: () => void })
 export function ExpenseRow({ expense, onPress }: { expense: Expense; onPress?: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${expense.title}`} onPress={onPress} style={styles.row}><View style={styles.rowMain}><Text style={styles.rowTitle}>{expense.title}</Text><Text style={styles.rowMeta}>{expense.category}</Text></View><Text style={styles.rowTitle}>{formatNaira(expense.amount)}</Text></Pressable>; }
 export function DebtRow({ debt, onPaid, onPress }: { debt: Debt; onPaid?: () => void; onPress?: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${debt.customerName}`} onPress={onPress} style={styles.row}><View style={styles.rowMain}><Text style={styles.rowTitle}>{debt.customerName}</Text><Text style={styles.rowMeta}>{debt.description} · Due {new Date(debt.dueDate).toLocaleDateString('en-NG')}</Text></View><View style={styles.rowRight}><Text style={styles.rowTitle}>{formatNaira(debt.amount)}</Text><Pressable onPress={onPaid}><Text style={[styles.badge, debt.status === 'Paid' ? styles.badgeGood : styles.badgeLow]}>{debt.status}</Text></Pressable></View></Pressable>; }
 
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.paper }, content: { width: '100%', maxWidth: 980, alignSelf: 'center', padding: 20, paddingBottom: 110 }, topbar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, brand: { color: colors.green, fontWeight: '800', fontSize: 18 }, back: { color: colors.green, fontSize: 16, fontWeight: '700' }, heading: { marginTop: 20, marginBottom: 22 }, title: { color: colors.ink, fontSize: 30, fontWeight: '800' }, subtitle: { color: colors.muted, marginTop: 6, fontSize: 15 }, sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 12 }, sectionTitle: { color: colors.ink, fontSize: 19, fontWeight: '800' }, link: { color: colors.green, fontWeight: '700' }, stat: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, padding: 17, borderRadius: 10, minWidth: 140, flex: 1 }, statAccent: { backgroundColor: colors.green, borderColor: colors.green }, statLabel: { color: colors.muted, fontSize: 13, marginBottom: 9 }, statValue: { color: colors.ink, fontSize: 22, fontWeight: '800' }, lightText: { color: colors.white }, primary: { backgroundColor: colors.green, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8 }, primaryText: { color: colors.white, fontWeight: '800', fontSize: 15 }, secondary: { backgroundColor: colors.mint, borderRadius: 8, paddingVertical: 13, alignItems: 'center', marginTop: 8 }, secondaryText: { color: colors.green, fontWeight: '800' }, disabled: { opacity: 0.45 }, empty: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, borderRadius: 10, padding: 28, alignItems: 'center' }, emptyMark: { color: colors.green, fontSize: 28, fontWeight: '300' }, emptyTitle: { color: colors.ink, fontWeight: '800', fontSize: 16, marginTop: 8 }, emptyText: { color: colors.muted, textAlign: 'center', marginTop: 5, lineHeight: 20 }, row: { backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', gap: 14 }, rowMain: { flex: 1 }, rowRight: { alignItems: 'flex-end' }, rowTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, rowMeta: { color: colors.muted, fontSize: 13, marginTop: 5 }, profit: { color: colors.green, fontSize: 12, marginTop: 5, fontWeight: '700' }, badge: { fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, overflow: 'hidden', marginTop: 5 }, badgeLow: { color: colors.red, backgroundColor: '#f8e0dc' }, badgeGood: { color: colors.green, backgroundColor: colors.mint }, field: { marginBottom: 14 }, fieldLabel: { color: colors.ink, fontWeight: '700', marginBottom: 7 }, input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, color: colors.ink, fontSize: 16 }, error: { color: colors.red, fontSize: 12, marginTop: 5 }, nav: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 8, paddingBottom: 12 }, navItem: { alignItems: 'center', minWidth: 46 }, navIcon: { color: colors.green, fontSize: 18, fontWeight: '800' }, navLabel: { color: colors.muted, fontSize: 10, marginTop: 3 } });
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.paper },
+  content: { width: '100%', maxWidth: 980, alignSelf: 'center', padding: 20, paddingBottom: 110 },
+  topbar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { color: colors.green, fontWeight: '800', fontSize: 18 },
+  back: { color: colors.green, fontSize: 16, fontWeight: '700' },
+  heading: { marginTop: 20, marginBottom: 22 },
+  title: { color: colors.ink, fontSize: 30, fontWeight: '800' },
+  subtitle: { color: colors.muted, marginTop: 6, fontSize: 15 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 12 },
+  sectionTitle: { color: colors.ink, fontSize: 19, fontWeight: '800' },
+  link: { color: colors.green, fontWeight: '700' },
+  stat: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, padding: 17, borderRadius: 10, minWidth: 140, flex: 1 },
+  statAccent: { backgroundColor: colors.green, borderColor: colors.green },
+  statLabel: { color: colors.muted, fontSize: 13, marginBottom: 9 },
+  statValue: { color: colors.ink, fontSize: 22, fontWeight: '800' },
+  lightText: { color: colors.white },
+  primary: { backgroundColor: colors.green, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8, transitionProperty: 'transform, background-color, box-shadow', transitionDuration: '150ms' } as any,
+  primaryHovered: { backgroundColor: '#254a32', transform: [{ translateY: -1 }], boxShadow: '0 4px 10px rgba(26,46,34,0.18)' } as any,
+  primaryPressed: { transform: [{ translateY: 0 }], backgroundColor: '#1f3f2a' } as any,
+  primaryText: { color: colors.white, fontWeight: '800', fontSize: 15 },
+  secondary: { backgroundColor: colors.mint, borderRadius: 8, paddingVertical: 13, alignItems: 'center', marginTop: 8, transitionProperty: 'transform, background-color', transitionDuration: '150ms' } as any,
+  secondaryHovered: { backgroundColor: '#d8e2d2', transform: [{ translateY: -1 }] } as any,
+  secondaryPressed: { transform: [{ translateY: 0 }] } as any,
+  secondaryText: { color: colors.green, fontWeight: '800' },
+  disabled: { opacity: 0.45 },
+  empty: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, borderRadius: 10, padding: 28, alignItems: 'center' },
+  emptyMark: { color: colors.green, fontSize: 28, fontWeight: '300' },
+  emptyTitle: { color: colors.ink, fontWeight: '800', fontSize: 16, marginTop: 8 },
+  emptyText: { color: colors.muted, textAlign: 'center', marginTop: 5, lineHeight: 20 },
+  row: { backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', gap: 14 },
+  rowMain: { flex: 1 },
+  rowRight: { alignItems: 'flex-end' },
+  rowTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  rowMeta: { color: colors.muted, fontSize: 13, marginTop: 5 },
+  profit: { color: colors.green, fontSize: 12, marginTop: 5, fontWeight: '700' },
+  badge: { fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, overflow: 'hidden', marginTop: 5 },
+  badgeLow: { color: colors.red, backgroundColor: '#f3e3d6' },
+  badgeGood: { color: colors.green, backgroundColor: colors.mint },
+  field: { marginBottom: 14 },
+  fieldLabel: { color: colors.ink, fontWeight: '700', marginBottom: 7 },
+  input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, color: colors.ink, fontSize: 16 },
+  error: { color: colors.red, fontSize: 12, marginTop: 5 },
+  nav: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 8, paddingBottom: 12 },
+  navItem: { alignItems: 'center', minWidth: 46 },
+  navIcon: { color: colors.green, fontSize: 18, fontWeight: '800' },
+  navLabel: { color: colors.muted, fontSize: 10, marginTop: 3 },
+});

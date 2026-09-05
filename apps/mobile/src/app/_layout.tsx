@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { StockLiteProvider } from '@/context/StockLiteContext';
 import { Redirect, Stack, useSegments } from 'expo-router';
+import Head from 'expo-router/head';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors } from '@/components/stock-ui';
 
@@ -29,6 +30,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StockLiteProvider>
+        <Head>
+          <title>StockLite</title>
+        </Head>
         <RootLayoutContent />
       </StockLiteProvider>
     </AuthProvider>
