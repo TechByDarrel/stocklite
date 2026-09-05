@@ -14,6 +14,8 @@ interface StockLiteContextValue {
   debts: Debt[];
   isLoading: boolean;
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   recordSale: (items: SaleItem[]) => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
   addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'amountPaid'>) => Promise<void>;
@@ -84,6 +86,30 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
     }
   };
 
+  const updateProduct = async (id: string, updates: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    try {
+      const updated = await productRepo.updateProduct(id, updates);
+      if (updated) {
+        setProducts((current) => current.map((p) => (p.id === id ? updated : p)));
+      }
+    } catch (error) {
+      console.error('Failed to update product:', error);
+      throw error;
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      const success = await productRepo.deleteProduct(id);
+      if (success) {
+        setProducts((current) => current.filter((p) => p.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      throw error;
+    }
+  };
+
   const recordSale = async (items: SaleItem[]) => {
     try {
       const newSale = await saleRepo.createSale(items);
@@ -141,6 +167,8 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
         debts,
         isLoading,
         addProduct,
+        updateProduct,
+        deleteProduct,
         recordSale,
         addExpense,
         addDebt,
