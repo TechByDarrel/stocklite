@@ -37,6 +37,12 @@ export default function EditExpenseScreen() {
     );
   }
 
+  const hasChanges =
+    title.trim() !== expense.title ||
+    Number(amount) !== expense.amount ||
+    category !== expense.category ||
+    (note.trim() || undefined) !== (expense.note || undefined);
+
   const save = async () => {
     setError('');
     const value = Number(amount);
@@ -99,7 +105,7 @@ export default function EditExpenseScreen() {
       </View>
       <Field label="Note (optional)" value={note} onChangeText={setNote} placeholder="Add a note" editable={!busy} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy} />
+      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy || !hasChanges} />
       <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete expense'} onPress={confirmDelete} />
     </Screen>
   );

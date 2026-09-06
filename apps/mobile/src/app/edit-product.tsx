@@ -40,6 +40,14 @@ export default function EditProductScreen() {
     );
   }
 
+  const hasChanges =
+    name.trim() !== product.name ||
+    numberValue(cost) !== product.costPrice ||
+    numberValue(price) !== product.sellingPrice ||
+    numberValue(quantity) !== product.quantity ||
+    numberValue(threshold) !== product.lowStockThreshold ||
+    (photoUri || undefined) !== (product.photoUri || undefined);
+
   const save = async () => {
     setError('');
     const costValue = numberValue(cost);
@@ -110,7 +118,7 @@ export default function EditProductScreen() {
       <Field label="Quantity" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="0" editable={!busy} />
       <Field label="Low stock threshold" value={threshold} onChangeText={setThreshold} keyboardType="numeric" placeholder="5" editable={!busy} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy} />
+      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy || !hasChanges} />
       <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete product'} onPress={confirmDelete} />
     </Screen>
   );
