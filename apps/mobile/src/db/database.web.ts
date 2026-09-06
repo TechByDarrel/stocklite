@@ -11,7 +11,9 @@ interface WebUser extends StoredRecord {
   displayName?: string;
   email: string;
   passwordHash: string;
+  passwordSalt?: string | null;
   businessName: string;
+  photoUri?: string | null;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -69,12 +71,22 @@ function createMockDatabase(): SQLiteDatabase {
       const params = paramsOf(rawParams);
       if (sql.includes('lastLoginAt IS NOT NULL')) {
         const user = readUsers().filter((item) => item.lastLoginAt).sort((a, b) => (b.lastLoginAt || '').localeCompare(a.lastLoginAt || ''))[0];
-        return (user ? { id: user.id, displayName: user.displayName, email: user.email, businessName: user.businessName } : null) as T | null;
+        return (user ? { id: user.id, displayName: user.displayName, email: user.email, businessName: user.businessName, photoUri: user.photoUri ?? null } : null) as T | null;
       }
-      if (sql.includes('passwordHash = ?')) {
-        const user = readUsers().find((item) => item.email === params[0] && item.passwordHash === params[1]);
-        return (user ? { id: user.id, displayName: user.displayName, email: user.email, businessName: user.businessName } : null) as T | null;
+      // Login query: selects passwordHash/passwordSalt to verify credentials.
+      if (sql.includes('FROM users') && sql.includes('passwordHash')) {
+        const user = readUsers().find((item) => item.email === params[0]);
+        return (user ? {
+          id: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          businessName: user.businessName,
+          photoUri: user.photoUri ?? null,
+          passwordHash: user.passwordHash,
+          passwordSalt: user.passwordSalt ?? null,
+        } : null) as T | null;
       }
+      // Signup duplicate-check: only selects id.
       if (sql.includes('FROM users') && sql.includes('WHERE email = ?')) {
         const user = readUsers().find((item) => item.email === params[0]);
         return (user ? { id: user.id } : null) as T | null;
@@ -91,18 +103,27 @@ function createMockDatabase(): SQLiteDatabase {
       let changes = 1;
       if (sql.includes('INSERT INTO users')) {
         const [id, displayName, email, passwordHash, businessName, createdAt, lastLoginAt] = params;
-        writeUsers([...readUsers(), { id, displayName, email, passwordHash, businessName, createdAt, lastLoginAt }]);
+        writeUsers([...readUsers(), { id, displayName, email, passwordHash, passwordSalt: null, businessName, photoUri: null, createdAt, lastLoginAt }]);
       } else if (sql.includes('UPDATE users SET displayName')) {
         const [displayName, businessName, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, displayName, businessName } : user));
+      } else if (sql.includes('UPDATE users SET photoUri')) {
+        const [photoUri, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, photoUri } : user));
+      } else if (sql.includes('UPDATE users SET passwordHash')) {
+        const [passwordHash, passwordSalt, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, passwordHash, passwordSalt } : user));
+      } else if (sql.includes('UPDATE users SET passwordSalt')) {
+        const [passwordSalt, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, passwordSalt } : user));
       } else if (sql.includes('UPDATE users SET lastLoginAt')) {
         const isLogout = sql.includes('SET lastLoginAt = NULL');
         const id = isLogout ? params[0] : params[1];
         const lastLoginAt = isLogout ? null : params[0];
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, lastLoginAt } : user));
       } else if (sql.includes('INSERT INTO products')) {
-        const [id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, createdAt, updatedAt] = params;
-        writeRecords('products', [...readRecords('products'), { id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, createdAt, updatedAt }]);
+        const [id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, createdAt, updatedAt] = params;
+        writeRecords('products', [...readRecords('products'), { id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, createdAt, updatedAt }]);
       } else if (sql.includes('UPDATE products')) {
         if (sql.includes('SET quantity')) {
           const [quantityDelta, updatedAt, id, ownerId] = params;
@@ -111,8 +132,8 @@ function createMockDatabase(): SQLiteDatabase {
           changes = canUpdate ? 1 : 0;
           writeRecords('products', records.map((item) => item.id === id && item.ownerId === ownerId && item.quantity + quantityDelta >= 0 ? { ...item, quantity: item.quantity + quantityDelta, updatedAt } : item));
         } else {
-          const [name, sellingPrice, costPrice, quantity, lowStockThreshold, updatedAt, id, ownerId] = params;
-          writeRecords('products', readRecords('products').map((item) => item.id === id && item.ownerId === ownerId ? { ...item, name, sellingPrice, costPrice, quantity, lowStockThreshold, updatedAt } : item));
+          const [name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, updatedAt, id, ownerId] = params;
+          writeRecords('products', readRecords('products').map((item) => item.id === id && item.ownerId === ownerId ? { ...item, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, updatedAt } : item));
         }
       } else if (sql.includes('DELETE FROM products')) {
         writeRecords('products', readRecords('products').filter((item) => !(item.id === params[0] && item.ownerId === params[1])));
@@ -125,6 +146,9 @@ function createMockDatabase(): SQLiteDatabase {
       } else if (sql.includes('INSERT INTO expenses')) {
         const [id, userId, title, amount, category, note, createdAt] = params;
         writeRecords('expenses', [...readRecords('expenses'), { id, userId, title, amount, category, note, createdAt }]);
+      } else if (sql.includes('UPDATE expenses')) {
+        const [title, amount, category, note, id, userId] = params;
+        writeRecords('expenses', readRecords('expenses').map((item) => item.id === id && item.userId === userId ? { ...item, title, amount, category, note } : item));
       } else if (sql.includes('INSERT INTO debts')) {
         const [id, userId, customerName, description, amount, amountPaid, dueDate, status, createdAt, updatedAt] = params;
         writeRecords('debts', [...readRecords('debts'), { id, userId, customerName, description, amount, amountPaid, dueDate, status, createdAt, updatedAt }]);
@@ -134,6 +158,9 @@ function createMockDatabase(): SQLiteDatabase {
       } else if (sql.includes('UPDATE debts SET status')) {
         const [status, updatedAt, id, userId] = params;
         writeRecords('debts', readRecords('debts').map((item) => item.id === id && item.userId === userId ? { ...item, status, updatedAt } : item));
+      } else if (sql.includes('UPDATE debts SET customerName')) {
+        const [customerName, description, amount, dueDate, status, updatedAt, id, userId] = params;
+        writeRecords('debts', readRecords('debts').map((item) => item.id === id && item.userId === userId ? { ...item, customerName, description, amount, dueDate, status, updatedAt } : item));
       } else if (sql.includes('DELETE FROM debts')) {
         writeRecords('debts', readRecords('debts').filter((item) => !(item.id === params[0] && item.userId === params[1])));
       } else if (sql.includes('DELETE FROM expenses')) {

@@ -5,7 +5,7 @@ import { getActiveUserId, getDatabase } from '../database';
 export async function getProducts(): Promise<Product[]> {
   const db = await getDatabase();
   const products = await db.getAllAsync<Product>(
-    `SELECT id, name, sellingPrice, costPrice, quantity, lowStockThreshold, createdAt, updatedAt 
+    `SELECT id, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, createdAt, updatedAt 
     FROM products
     WHERE ownerId = ?
      ORDER BY updatedAt DESC`
@@ -17,7 +17,7 @@ export async function getProducts(): Promise<Product[]> {
 export async function getProduct(id: string): Promise<Product | null> {
   const db = await getDatabase();
   const product = await db.getFirstAsync<Product>(
-    `SELECT id, name, sellingPrice, costPrice, quantity, lowStockThreshold, createdAt, updatedAt 
+    `SELECT id, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, createdAt, updatedAt 
      FROM products 
     WHERE id = ? AND ownerId = ?`,
       [id, getActiveUserId()]
@@ -33,8 +33,8 @@ export async function createProduct(
   const now = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO products (id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO products (id, ownerId, name, sellingPrice, costPrice, quantity, lowStockThreshold, photoUri, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       getActiveUserId(),
@@ -43,6 +43,7 @@ export async function createProduct(
       product.costPrice,
       product.quantity,
       product.lowStockThreshold,
+      product.photoUri || null,
       now,
       now,
     ]
@@ -70,7 +71,7 @@ export async function updateProduct(
 
   await db.runAsync(
     `UPDATE products 
-     SET name = ?, sellingPrice = ?, costPrice = ?, quantity = ?, lowStockThreshold = ?, updatedAt = ?
+     SET name = ?, sellingPrice = ?, costPrice = ?, quantity = ?, lowStockThreshold = ?, photoUri = ?, updatedAt = ?
      WHERE id = ? AND ownerId = ?`,
     [
       updated.name,
@@ -78,6 +79,7 @@ export async function updateProduct(
       updated.costPrice,
       updated.quantity,
       updated.lowStockThreshold,
+      updated.photoUri || null,
       now,
       id,
       getActiveUserId(),

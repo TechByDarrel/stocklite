@@ -8,6 +8,7 @@ export interface Product {
   costPrice: number;
   quantity: number;
   lowStockThreshold: number;
+  photoUri?: string;
   createdAt: string;
   updatedAt: string;
 }

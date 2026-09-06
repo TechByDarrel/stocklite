@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text } from 'react-native';
-import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PhotoPicker, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
 const numberValue = (value: string) => Number(value.replace(/,/g, ''));
@@ -16,6 +16,7 @@ export default function EditProductScreen() {
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [threshold, setThreshold] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -27,6 +28,7 @@ export default function EditProductScreen() {
       setPrice(String(product.sellingPrice));
       setQuantity(String(product.quantity));
       setThreshold(String(product.lowStockThreshold));
+      setPhotoUri(product.photoUri || null);
     }
   }, [product]);
 
@@ -63,6 +65,7 @@ export default function EditProductScreen() {
         sellingPrice: priceValue,
         quantity: quantityValue,
         lowStockThreshold: thresholdValue,
+        photoUri: photoUri || undefined,
       });
       router.back();
     } catch {
@@ -100,6 +103,7 @@ export default function EditProductScreen() {
 
   return (
     <Screen title="Edit product" subtitle="Update this item's details" back>
+      <PhotoPicker uri={photoUri} onPick={setPhotoUri} label="Add product photo" />
       <Field label="Product name" value={name} onChangeText={setName} placeholder="e.g. Rice 5kg" editable={!busy} />
       <Field label="Cost price" value={cost} onChangeText={setCost} keyboardType="numeric" placeholder="0" editable={!busy} />
       <Field label="Selling price" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="0" editable={!busy} />
