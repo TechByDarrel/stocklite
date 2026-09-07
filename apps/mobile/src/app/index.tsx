@@ -19,6 +19,12 @@ export default function HomeScreen() {
   const profit = todaySales.reduce((sum, sale) => sum + sale.profit, 0);
   const debtTotal = debts.filter((debt) => debt.status === 'Outstanding').reduce((sum, debt) => sum + debt.amount, 0);
 
+  const thumbFor = (sale: (typeof sales)[number]) => {
+    const firstItem = sale.items[0];
+    if (!firstItem) return undefined;
+    return products.find((p) => p.id === firstItem.productId)?.photoUri;
+  };
+
   if (isLoading) {
     return (
       <Screen>
@@ -60,7 +66,7 @@ export default function HomeScreen() {
 
       <SectionHeader title="Recent sales" action="View all" onPress={() => router.push('/sales')} />
       {sales.length ? (
-        sales.slice(0, 3).map((sale) => <SaleRow key={sale.id} sale={sale} onPress={() => router.push(`/sale-detail?id=${sale.id}` as never)} />)
+        sales.slice(0, 3).map((sale) => <SaleRow key={sale.id} sale={sale} thumbUri={thumbFor(sale)} onPress={() => router.push(`/sale-detail?id=${sale.id}` as never)} />)
       ) : (
         <EmptyState title="No sales yet" text="Record your first sale to see it here." />
       )}

@@ -5,7 +5,7 @@ import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stoc
 import { useStockLite } from '@/context/StockLiteContext';
 import type { ExpenseCategory } from '@/types';
 
-const categories: ExpenseCategory[] = ['Transport', 'Electricity', 'Diesel', 'Supplies', 'Other'];
+const categories: ExpenseCategory[] = ['Transport', 'Electricity', 'Diesel', 'Rent', 'Staff wages', 'Stock purchase', 'Data/Airtime', 'Repairs', 'Supplies', 'Other'];
 
 export default function EditExpenseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

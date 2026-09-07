@@ -153,9 +153,45 @@ export function PhotoPicker({ uri, onPick, size = 96, label = 'Add photo' }: { u
 }
 
 export function ProductRow({ product, onPress }: { product: Product; onPress?: () => void }) { const low = product.quantity <= product.lowStockThreshold; return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${product.name}`} onPress={onPress} style={styles.row}><View style={styles.rowThumbWrap}>{product.photoUri ? <Image source={{ uri: product.photoUri }} style={styles.rowThumb} /> : <View style={[styles.rowThumb, styles.rowThumbPlaceholder]} />}</View><View style={styles.rowMain}><Text style={styles.rowTitle}>{product.name}</Text><Text style={styles.rowMeta}>{formatNaira(product.sellingPrice)}</Text></View><View style={styles.rowRight}><Text style={styles.rowTitle}>{product.quantity}</Text><Text style={[styles.badge, low ? styles.badgeLow : styles.badgeGood]}>{low ? 'Low stock' : 'In stock'}</Text></View></Pressable>; }
-export function SaleRow({ sale, onPress }: { sale: Sale; onPress?: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel="View sale details" onPress={onPress} style={styles.row}><View style={styles.rowMain}><Text style={styles.rowTitle}>{sale.items.map((item) => item.productName).join(', ')}</Text><Text style={styles.rowMeta}>{sale.items.reduce((sum, item) => sum + item.quantity, 0)} item(s) · {new Date(sale.createdAt).toLocaleDateString('en-NG')}</Text></View><View style={styles.rowRight}><Text style={styles.rowTitle}>{formatNaira(sale.total)}</Text><Text style={styles.profit}>{formatNaira(sale.profit)} profit</Text></View></Pressable>; }
+export function SaleRow({ sale, thumbUri, onPress }: { sale: Sale; thumbUri?: string; onPress?: () => void }) {
+  const itemCount = sale.items.length;
+  const isSingleItem = itemCount === 1;
+  return <Pressable accessibilityRole="button" accessibilityLabel="View sale details" onPress={onPress} style={styles.row}>
+    <View style={styles.rowThumbWrap}>
+      {isSingleItem && thumbUri ? (
+        <Image source={{ uri: thumbUri }} style={styles.rowThumb} />
+      ) : isSingleItem ? (
+        <View style={[styles.rowThumb, styles.rowThumbPlaceholder]} />
+      ) : (
+        <View style={[styles.rowThumb, styles.rowThumbCount]}><Text style={styles.rowThumbCountText}>{itemCount}</Text></View>
+      )}
+    </View>
+    <View style={styles.rowMain}>
+      <Text style={styles.rowTitle}>{sale.items.map((item) => item.productName).join(', ')}</Text>
+      <Text style={styles.rowMeta}>{sale.items.reduce((sum, item) => sum + item.quantity, 0)} item(s) · {new Date(sale.createdAt).toLocaleDateString('en-NG')}</Text>
+    </View>
+    <View style={styles.rowRight}>
+      <Text style={styles.rowTitle}>{formatNaira(sale.total)}</Text>
+      <Text style={styles.profit}>{formatNaira(sale.profit)} profit</Text>
+    </View>
+  </Pressable>;
+}
 export function ExpenseRow({ expense, onPress }: { expense: Expense; onPress?: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${expense.title}`} onPress={onPress} style={styles.row}><View style={styles.rowMain}><Text style={styles.rowTitle}>{expense.title}</Text><Text style={styles.rowMeta}>{expense.category}</Text></View><Text style={styles.rowTitle}>{formatNaira(expense.amount)}</Text></Pressable>; }
-export function DebtRow({ debt, onPaid, onPress }: { debt: Debt; onPaid?: () => void; onPress?: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${debt.customerName}`} onPress={onPress} style={styles.row}><View style={styles.rowMain}><Text style={styles.rowTitle}>{debt.customerName}</Text><Text style={styles.rowMeta}>{debt.description} · Due {new Date(debt.dueDate).toLocaleDateString('en-NG')}</Text></View><View style={styles.rowRight}><Text style={styles.rowTitle}>{formatNaira(debt.amount)}</Text><Pressable onPress={onPaid}><Text style={[styles.badge, debt.status === 'Paid' ? styles.badgeGood : styles.badgeLow]}>{debt.status}</Text></Pressable></View></Pressable>; }
+export function DebtRow({ debt, onPaid, onPress }: { debt: Debt; onPaid?: () => void; onPress?: () => void }) {
+  const isOverdue = debt.status === 'Outstanding' && new Date(debt.dueDate).getTime() < Date.now();
+  const statusLabel = debt.status === 'Paid' ? 'Paid' : isOverdue ? 'Overdue' : 'Outstanding';
+  const badgeStyle = debt.status === 'Paid' ? styles.badgeGood : isOverdue ? styles.badgeOverdue : styles.badgeLow;
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${debt.customerName}`} onPress={onPress} style={styles.row}>
+    <View style={styles.rowMain}>
+      <Text style={styles.rowTitle}>{debt.customerName}</Text>
+      <Text style={styles.rowMeta}>{debt.description} · Due {new Date(debt.dueDate).toLocaleDateString('en-NG')}</Text>
+    </View>
+    <View style={styles.rowRight}>
+      <Text style={styles.rowTitle}>{formatNaira(debt.amount)}</Text>
+      <Pressable onPress={onPaid}><Text style={[styles.badge, badgeStyle]}>{statusLabel}</Text></Pressable>
+    </View>
+  </Pressable>;
+}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
@@ -195,13 +231,16 @@ const styles = StyleSheet.create({
   rowThumbWrap: { marginRight: 2 },
   rowThumb: { width: 40, height: 40, borderRadius: 8 },
   rowThumbPlaceholder: { backgroundColor: colors.mint },
+  rowThumbCount: { backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  rowThumbCountText: { color: colors.white, fontWeight: '800', fontSize: 14 },
   rowMain: { flex: 1 },
   rowRight: { alignItems: 'flex-end' },
   rowTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   rowMeta: { color: colors.muted, fontSize: 13, marginTop: 5 },
   profit: { color: colors.green, fontSize: 12, marginTop: 5, fontWeight: '700' },
   badge: { fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, overflow: 'hidden', marginTop: 5 },
-  badgeLow: { color: colors.red, backgroundColor: '#f3e3d6' },
+    badgeLow: { color: colors.red, backgroundColor: '#f3e3d6' },
+  badgeOverdue: { color: colors.white, backgroundColor: colors.red },
   badgeGood: { color: colors.green, backgroundColor: colors.mint },
   field: { marginBottom: 14 },
   fieldLabel: { color: colors.ink, fontWeight: '700', marginBottom: 7 },

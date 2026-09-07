@@ -1,4 +1,4 @@
-export type ExpenseCategory = 'Transport' | 'Electricity' | 'Diesel' | 'Supplies' | 'Other';
+export type ExpenseCategory = 'Transport' | 'Electricity' | 'Diesel' | 'Rent' | 'Staff wages' | 'Stock purchase' | 'Data/Airtime' | 'Repairs' | 'Supplies' | 'Other';
 export type DebtStatus = 'Outstanding' | 'Paid';
 
 export interface Product {
