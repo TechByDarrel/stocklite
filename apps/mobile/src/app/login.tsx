@@ -5,6 +5,14 @@ import { useAuth } from '@/context/AuthContext';
 import { Field, PrimaryButton } from '@/components/stock-ui';
 import { colors } from '@/components/stock-ui';
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 30000;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// In-memory only: resets on app reload. This is a basic deterrent against
+// casual repeated guessing, not a substitute for real backend rate-limiting.
+const attemptsByEmail = new Map<string, { count: number; lockedUntil: number }>();
+
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -14,9 +22,15 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     setError('');
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!email.trim()) {
+    if (!normalizedEmail) {
       setError('Email is required');
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setError('Please enter a valid email');
       return;
     }
 
@@ -25,13 +39,30 @@ export default function LoginScreen() {
       return;
     }
 
+    const record = attemptsByEmail.get(normalizedEmail);
+    if (record && record.lockedUntil > Date.now()) {
+      const secondsLeft = Math.ceil((record.lockedUntil - Date.now()) / 1000);
+      setError(`Too many attempts. Please try again in ${secondsLeft}s.`);
+      return;
+    }
+
     try {
       setIsLoading(true);
       await login(email.trim(), password);
+      attemptsByEmail.delete(normalizedEmail);
       router.replace('/' as never);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
-      setError(message);
+      const current = attemptsByEmail.get(normalizedEmail) || { count: 0, lockedUntil: 0 };
+      const nextCount = current.count + 1;
+      const lockedUntil = nextCount >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : 0;
+      attemptsByEmail.set(normalizedEmail, { count: nextCount, lockedUntil });
+
+      if (lockedUntil) {
+        setError(`Too many failed attempts. Please try again in ${Math.ceil(LOCKOUT_MS / 1000)}s.`);
+      } else {
+        const message = err instanceof Error ? err.message : 'Login failed';
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }

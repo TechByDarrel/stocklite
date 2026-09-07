@@ -5,6 +5,18 @@ import { useAuth } from '@/context/AuthContext';
 import { Field, PrimaryButton, Screen } from '@/components/stock-ui';
 import { colors } from '@/components/stock-ui';
 
+const MAX_NAME_LENGTH = 60;
+const MAX_EMAIL_LENGTH = 100;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getPasswordStrength(password: string): { label: 'Weak' | 'Medium' | 'Strong'; score: number; color: string } {
+  if (password.length < 6) return { label: 'Weak', score: 1, color: colors.red };
+  const hasUpper = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  if (password.length < 10 || !hasUpper || !hasNumber) return { label: 'Medium', score: 2, color: colors.yellow };
+  return { label: 'Strong', score: 3, color: colors.green };
+}
+
 export default function SignupScreen() {
   const { signup } = useAuth();
   const [email, setEmail] = useState('');
@@ -13,7 +25,7 @@ export default function SignupScreen() {
   const [businessName, setBusinessName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const passwordStrength = password.length < 6 ? 'Weak' : password.length < 10 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) ? 'Medium' : 'Strong';
+  const strength = getPasswordStrength(password);
 
   const handleSignup = async () => {
     setError('');
@@ -23,7 +35,7 @@ export default function SignupScreen() {
       return;
     }
 
-    if (!email.includes('@')) {
+    if (!EMAIL_PATTERN.test(email.trim())) {
       setError('Please enter a valid email');
       return;
     }
@@ -75,6 +87,7 @@ export default function SignupScreen() {
           onChangeText={setBusinessName}
           placeholder="Your shop or business name"
           editable={!isLoading}
+          maxLength={MAX_NAME_LENGTH}
         />
         <Field
           label="Email"
@@ -84,6 +97,7 @@ export default function SignupScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           editable={!isLoading}
+          maxLength={MAX_EMAIL_LENGTH}
         />
 
         <Field
@@ -95,7 +109,14 @@ export default function SignupScreen() {
           editable={!isLoading}
         />
 
-        {password ? <Text style={styles.passwordStrength}>Password strength: {passwordStrength}</Text> : null}
+        {password ? (
+          <View style={styles.strengthWrap}>
+            <View style={styles.strengthTrack}>
+              <View style={[styles.strengthFill, { width: `${(strength.score / 3) * 100}%`, backgroundColor: strength.color }]} />
+            </View>
+            <Text style={[styles.strengthLabel, { color: strength.color }]}>{strength.label}</Text>
+          </View>
+        ) : null}
 
         <Field
           label="Confirm password"
@@ -166,10 +187,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
-  passwordStrength: {
-    color: colors.muted,
-    fontSize: 13,
+  strengthWrap: {
     marginTop: -8,
+    gap: 5,
+  },
+  strengthTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.line,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
