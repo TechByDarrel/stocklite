@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useStockLite } from '@/context/StockLiteContext';
 import { useAuth } from '@/context/AuthContext';
-import { colors, EmptyState, ProductRow, SaleRow, Screen, SectionHeader, StatCard } from '@/components/stock-ui';
+import { ActionTile, colors, EmptyState, ProductRow, SaleRow, Screen, SectionHeader, StatCard } from '@/components/stock-ui';
 import { formatNaira } from '@/utils/currency';
 import { getTimeBasedGreeting } from '@/utils/greeting';
 const isToday = (value: string) => new Date(value).toDateString() === new Date().toDateString();
@@ -12,7 +12,9 @@ export default function HomeScreen() {
   const { user } = useAuth();
 
   const todaySales = sales.filter((sale) => isToday(sale.createdAt));
-  const lowStock = products.filter((product) => product.quantity <= product.lowStockThreshold);
+  const lowStock = products
+    .filter((product) => product.quantity <= product.lowStockThreshold)
+    .sort((a, b) => a.quantity - b.quantity);
   const revenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
   const profit = todaySales.reduce((sum, sale) => sum + sale.profit, 0);
   const debtTotal = debts.filter((debt) => debt.status === 'Outstanding').reduce((sum, debt) => sum + debt.amount, 0);
@@ -52,26 +54,20 @@ export default function HomeScreen() {
           ['Add expense', '/add-expense'],
           ['Add debt', '/add-debt'],
         ].map(([label, path]) => (
-          <Pressable
-            key={path}
-            style={styles.action}
-            onPress={() => router.push(path as never)}
-          >
-            <Text style={styles.actionText}>{label}</Text>
-          </Pressable>
+          <ActionTile key={path} label={label} onPress={() => router.push(path as never)} />
         ))}
       </View>
 
       <SectionHeader title="Recent sales" action="View all" onPress={() => router.push('/sales')} />
       {sales.length ? (
-        sales.slice(0, 3).map((sale) => <SaleRow key={sale.id} sale={sale} />)
+        sales.slice(0, 3).map((sale) => <SaleRow key={sale.id} sale={sale} onPress={() => router.push(`/sale-detail?id=${sale.id}` as never)} />)
       ) : (
         <EmptyState title="No sales yet" text="Record your first sale to see it here." />
       )}
 
       <SectionHeader title="Low stock" action="View products" onPress={() => router.push('/products')} />
       {lowStock.length ? (
-        lowStock.slice(0, 3).map((product) => <ProductRow key={product.id} product={product} />)
+        lowStock.slice(0, 3).map((product) => <ProductRow key={product.id} product={product} onPress={() => router.push(`/edit-product?id=${product.id}` as never)} />)
       ) : (
         <EmptyState title="Stock levels look good" text="All products have sufficient stock." />
       )}
@@ -112,16 +108,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-  },
-  action: {
-    backgroundColor: colors.mint,
-    borderRadius: 8,
-    padding: 15,
-    minWidth: 145,
-    flexGrow: 1,
-  },
-  actionText: {
-    color: colors.green,
-    fontWeight: '800',
   },
 });

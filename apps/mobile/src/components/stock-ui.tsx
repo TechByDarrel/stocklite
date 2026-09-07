@@ -66,6 +66,21 @@ export function SecondaryButton({ label, onPress }: { label: string; onPress: ()
   </Pressable>;
 }
 
+export function ActionTile({ label, onPress }: { label: string; onPress: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  return <Pressable
+    onPress={onPress}
+    onHoverIn={() => setHovered(true)}
+    onHoverOut={() => setHovered(false)}
+    onPressIn={() => setPressed(true)}
+    onPressOut={() => setPressed(false)}
+    style={[styles.actionTile, hovered && styles.actionTileHovered, pressed && styles.actionTilePressed]}
+  >
+    <Text style={styles.actionTileText} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+  </Pressable>;
+}
+
 export function SectionHeader({ title, action, onPress }: { title: string; action?: string; onPress?: () => void }) { return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{action && <Pressable onPress={onPress}><Text style={styles.link}>{action}</Text></Pressable>}</View>; }
 export function StatCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <View style={[styles.stat, accent && styles.statAccent]}><Text style={[styles.statLabel, accent && styles.lightText]}>{label}</Text><Text style={[styles.statValue, accent && styles.lightText]}>{value}</Text></View>; }
 export function EmptyState({ title, text }: { title: string; text: string }) { return <View style={styles.empty}><Text style={styles.emptyMark}>+</Text><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyText}>{text}</Text></View>; }
@@ -167,6 +182,10 @@ const styles = StyleSheet.create({
   secondaryHovered: { backgroundColor: '#d8e2d2', transform: [{ translateY: -1 }] } as any,
   secondaryPressed: { transform: [{ translateY: 0 }] } as any,
   secondaryText: { color: colors.green, fontWeight: '800' },
+    actionTile: { backgroundColor: colors.mint, borderRadius: 8, padding: 15, minWidth: 145, flexGrow: 1, transitionProperty: 'transform, background-color, box-shadow', transitionDuration: '150ms' } as any,
+  actionTileHovered: { backgroundColor: '#d8e2d2', transform: [{ translateY: -1 }], boxShadow: '0 4px 10px rgba(26,46,34,0.12)' } as any,
+  actionTilePressed: { transform: [{ translateY: 0 }] } as any,
+  actionTileText: { color: colors.green, fontWeight: '800' },
   disabled: { opacity: 0.45 },
   empty: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, borderRadius: 10, padding: 28, alignItems: 'center' },
   emptyMark: { color: colors.green, fontSize: 28, fontWeight: '300' },
