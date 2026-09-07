@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Field, PrimaryButton, Screen } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 import type { SaleItem } from '@/types';
@@ -92,10 +92,17 @@ export default function RecordSaleScreen() {
             setQuery(product.name);
           }}
         >
-          <Text style={styles.optionName}>{product.name}</Text>
-          <Text style={styles.optionPrice}>
-            {formatNaira(product.sellingPrice)} · {product.quantity} available
-          </Text>
+          {product.photoUri ? (
+            <Image source={{ uri: product.photoUri }} style={styles.optionThumb} />
+          ) : (
+            <View style={[styles.optionThumb, styles.optionThumbPlaceholder]} />
+          )}
+          <View style={styles.optionText}>
+            <Text style={styles.optionName}>{product.name}</Text>
+            <Text style={styles.optionPrice}>
+              {formatNaira(product.sellingPrice)} · {product.quantity} available
+            </Text>
+          </View>
         </Pressable>
       ))}
 
@@ -110,16 +117,26 @@ export default function RecordSaleScreen() {
         <Text style={styles.addText}>Add item</Text>
       </Pressable>
 
-      {items.map((item, index) => (
-        <View key={`${item.productId}-${index}`} style={styles.item}>
-          <Text style={styles.itemName}>
-            {item.productName} x {item.quantity}
-          </Text>
-          <Text style={styles.itemValue}>
-            {formatNaira(item.unitPrice * item.quantity)}
-          </Text>
-        </View>
-      ))}
+      {items.map((item, index) => {
+        const product = products.find((p) => p.id === item.productId);
+        return (
+          <View key={`${item.productId}-${index}`} style={styles.item}>
+            <View style={styles.itemLeft}>
+              {product?.photoUri ? (
+                <Image source={{ uri: product.photoUri }} style={styles.itemThumb} />
+              ) : (
+                <View style={[styles.itemThumb, styles.optionThumbPlaceholder]} />
+              )}
+              <Text style={styles.itemName}>
+                {item.productName} x {item.quantity}
+              </Text>
+            </View>
+            <Text style={styles.itemValue}>
+              {formatNaira(item.unitPrice * item.quantity)}
+            </Text>
+          </View>
+        );
+      })}
 
       <View style={styles.summary}>
         <Text style={styles.summaryTitle}>Sale summary</Text>
@@ -151,11 +168,17 @@ const styles = StyleSheet.create({
     color: '#16221c',
   },
   option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#dfe6df',
     backgroundColor: '#fff',
   },
+  optionThumb: { width: 36, height: 36, borderRadius: 6 },
+  optionThumbPlaceholder: { backgroundColor: '#dcefe4' },
+  optionText: { flex: 1 },
   optionName: { fontWeight: '800', color: '#16221c' },
   optionPrice: { color: '#6b776f', marginTop: 3, fontSize: 12 },
   add: {
@@ -169,10 +192,13 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#dfe6df',
   },
+  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  itemThumb: { width: 32, height: 32, borderRadius: 6 },
   itemName: { color: '#16221c', fontWeight: '700' },
   itemValue: { color: '#176b45', fontWeight: '700' },
   summary: { padding: 16, backgroundColor: '#fff', marginTop: 20, gap: 10 },
