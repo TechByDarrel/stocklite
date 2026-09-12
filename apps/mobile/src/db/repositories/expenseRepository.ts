@@ -48,10 +48,10 @@ export async function deleteExpense(id: string): Promise<boolean> {
 export async function updateExpense(
   id: string,
   updates: Partial<Omit<Expense, 'id' | 'createdAt'>>
-): Promise<Expense | null> {
+): Promise<Expense> {
   const db = await getDatabase();
   const current = await getExpense(id);
-  if (!current) return null;
+  if (!current) throw new Error('Expense not found. It may have been deleted.');
 
   const updated = { ...current, ...updates };
 

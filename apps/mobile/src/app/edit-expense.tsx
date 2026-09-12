@@ -58,8 +58,8 @@ export default function EditExpenseScreen() {
         note: note.trim() || undefined,
       });
       router.back();
-    } catch {
-      setError('Could not save changes. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -83,8 +83,8 @@ export default function EditExpenseScreen() {
       setIsDeleting(true);
       await deleteExpense(expense.id);
       router.back();
-    } catch {
-      setError('Could not delete this expense. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete this expense. Please try again.');
       setIsDeleting(false);
     }
   };

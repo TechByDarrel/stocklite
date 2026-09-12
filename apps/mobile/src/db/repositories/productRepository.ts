@@ -60,12 +60,12 @@ export async function createProduct(
 export async function updateProduct(
   id: string,
   updates: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>
-): Promise<Product | null> {
+): Promise<Product> {
   const db = await getDatabase();
   const now = new Date().toISOString();
 
   const current = await getProduct(id);
-  if (!current) return null;
+  if (!current) throw new Error('Product not found. It may have been deleted.');
 
   const updated = { ...current, ...updates, updatedAt: now };
 

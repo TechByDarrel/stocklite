@@ -1,83 +1,66 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text } from 'react-native';
-import { Field, PhotoPicker, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
-const numberValue = (value: string) => Number(value.replace(/,/g, ''));
-
-export default function EditProductScreen() {
+export default function EditDebtScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { products, updateProduct, deleteProduct } = useStockLite();
-  const product = products.find((p) => p.id === id);
+  const { debts, updateDebt, deleteDebt, markDebtPaid } = useStockLite();
+  const debt = debts.find((d) => d.id === id);
 
-  const [name, setName] = useState('');
-  const [cost, setCost] = useState('');
-  const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [threshold, setThreshold] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarking, setIsMarking] = useState(false);
 
   useEffect(() => {
-    if (product) {
-      setName(product.name);
-      setCost(String(product.costPrice));
-      setPrice(String(product.sellingPrice));
-      setQuantity(String(product.quantity));
-      setThreshold(String(product.lowStockThreshold));
-      setPhotoUri(product.photoUri || null);
+    if (debt) {
+      setCustomerName(debt.customerName);
+      setAmount(String(debt.amount));
+      setDescription(debt.description);
+      setDueDate(debt.dueDate.slice(0, 10));
     }
-  }, [product]);
+  }, [debt]);
 
-  if (!product) {
+  if (!debt) {
     return (
-      <Screen title="Product not found" back>
-        <Text style={styles.error}>This product could not be found. It may have been deleted.</Text>
+      <Screen title="Debt not found" back>
+        <Text style={styles.error}>This debt could not be found. It may have been deleted.</Text>
       </Screen>
     );
   }
 
   const hasChanges =
-    name.trim() !== product.name ||
-    numberValue(cost) !== product.costPrice ||
-    numberValue(price) !== product.sellingPrice ||
-    numberValue(quantity) !== product.quantity ||
-    numberValue(threshold) !== product.lowStockThreshold ||
-    (photoUri || undefined) !== (product.photoUri || undefined);
+    customerName.trim() !== debt.customerName ||
+    Number(amount) !== debt.amount ||
+    description.trim() !== debt.description ||
+    dueDate !== debt.dueDate.slice(0, 10);
 
   const save = async () => {
     setError('');
-    const costValue = numberValue(cost);
-    const priceValue = numberValue(price);
-    const quantityValue = numberValue(quantity);
-    const thresholdValue = numberValue(threshold);
+    const value = Number(amount);
+    const parsedDate = new Date(dueDate);
 
-    if (!name.trim()) return setError('Product name is required.');
-    if (
-      ![costValue, priceValue].every((value) => Number.isFinite(value) && value > 0) ||
-      ![quantityValue, thresholdValue].every((value) => Number.isFinite(value) && value >= 0) ||
-      quantityValue % 1 !== 0 ||
-      thresholdValue % 1 !== 0
-    ) {
-      return setError('Enter positive prices and valid whole-number stock values.');
-    }
+    if (!customerName.trim()) return setError('Customer name is required.');
+    if (!Number.isFinite(value) || value <= 0) return setError('Amount must be a positive number.');
+    if (!dueDate.trim() || Number.isNaN(parsedDate.getTime())) return setError('Enter a valid due date.');
 
     try {
       setIsSaving(true);
-      await updateProduct(product.id, {
-        name: name.trim(),
-        costPrice: costValue,
-        sellingPrice: priceValue,
-        quantity: quantityValue,
-        lowStockThreshold: thresholdValue,
-        photoUri: photoUri || undefined,
+      await updateDebt(debt.id, {
+        customerName: customerName.trim(),
+        amount: value,
+        description: description.trim(),
+        dueDate: parsedDate.toISOString(),
       });
       router.back();
-    } catch {
-      setError('Could not save changes. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -85,12 +68,12 @@ export default function EditProductScreen() {
 
   const confirmDelete = () => {
     if (Platform.OS === 'web') {
-      if (window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
+      if (window.confirm(`Delete debt for "${debt.customerName}"? This cannot be undone.`)) {
         runDelete();
       }
       return;
     }
-    Alert.alert('Delete product', `Delete "${product.name}"? This cannot be undone.`, [
+    Alert.alert('Delete debt', `Delete debt for "${debt.customerName}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: runDelete },
     ]);
@@ -99,27 +82,39 @@ export default function EditProductScreen() {
   const runDelete = async () => {
     try {
       setIsDeleting(true);
-      await deleteProduct(product.id);
+      await deleteDebt(debt.id);
       router.back();
-    } catch {
-      setError('Could not delete this product. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete this debt. Please try again.');
       setIsDeleting(false);
     }
   };
 
-  const busy = isSaving || isDeleting;
+  const handleMarkPaid = async () => {
+    try {
+      setIsMarking(true);
+      await markDebtPaid(debt.id);
+      router.back();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update payment status. Please try again.');
+      setIsMarking(false);
+    }
+  };
+
+  const busy = isSaving || isDeleting || isMarking;
 
   return (
-    <Screen title="Edit product" subtitle="Update this item's details" back>
-      <PhotoPicker uri={photoUri} onPick={setPhotoUri} label="Add product photo" />
-      <Field label="Product name" value={name} onChangeText={setName} placeholder="e.g. Rice 5kg" editable={!busy} />
-      <Field label="Cost price" value={cost} onChangeText={setCost} keyboardType="numeric" placeholder="0" editable={!busy} />
-      <Field label="Selling price" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="0" editable={!busy} />
-      <Field label="Quantity" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="0" editable={!busy} />
-      <Field label="Low stock threshold" value={threshold} onChangeText={setThreshold} keyboardType="numeric" placeholder="5" editable={!busy} />
+    <Screen title="Edit debt" subtitle="Update this customer's balance" back>
+      <Field label="Customer name" value={customerName} onChangeText={setCustomerName} placeholder="e.g. Chinedu" editable={!busy} />
+      <Field label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="0" editable={!busy} />
+      <Field label="Description" value={description} onChangeText={setDescription} placeholder="What was purchased?" editable={!busy} />
+      <Field label="Due date" value={dueDate} onChangeText={setDueDate} placeholder="YYYY-MM-DD" editable={!busy} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy || !hasChanges} />
-      <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete product'} onPress={confirmDelete} />
+      {debt.status !== 'Paid' ? (
+        <SecondaryButton label={isMarking ? 'Updating...' : 'Mark as paid'} onPress={handleMarkPaid} />
+      ) : null}
+      <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete debt'} onPress={confirmDelete} />
     </Screen>
   );
 }

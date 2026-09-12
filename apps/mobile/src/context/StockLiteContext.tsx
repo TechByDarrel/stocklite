@@ -133,12 +133,10 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
     }
   };
 
-  const updateExpense = async (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) => {
+    const updateExpense = async (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) => {
     try {
       const updated = await expenseRepo.updateExpense(id, updates);
-      if (updated) {
-        setExpenses((current) => current.map((e) => (e.id === id ? updated : e)));
-      }
+      setExpenses((current) => current.map((e) => (e.id === id ? updated : e)));
     } catch (error) {
       console.error('Failed to update expense:', error);
       throw error;
@@ -167,12 +165,10 @@ export function StockLiteProvider({ children }: PropsWithChildren) {
     }
   };
 
-  const updateDebt = async (id: string, updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>) => {
+   const updateDebt = async (id: string, updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>) => {
     try {
       const updated = await debtRepo.updateDebt(id, updates);
-      if (updated) {
-        setDebts((current) => current.map((d) => (d.id === id ? updated : d)));
-      }
+      setDebts((current) => current.map((d) => (d.id === id ? updated : d)));
     } catch (error) {
       console.error('Failed to update debt:', error);
       throw error;

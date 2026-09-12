@@ -131,10 +131,10 @@ export async function deleteDebt(id: string): Promise<boolean> {
 export async function updateDebt(
   id: string,
   updates: Partial<Pick<Debt, 'customerName' | 'description' | 'amount' | 'dueDate'>>
-): Promise<Debt | null> {
+): Promise<Debt> {
   const db = await getDatabase();
   const current = await getDebt(id);
-  if (!current) return null;
+  if (!current) throw new Error('Debt not found. It may have been deleted.');
   const now = new Date().toISOString();
 
   const merged = { ...current, ...updates };

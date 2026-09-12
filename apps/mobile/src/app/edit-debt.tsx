@@ -35,6 +35,12 @@ export default function EditDebtScreen() {
     );
   }
 
+  const hasChanges =
+    customerName.trim() !== debt.customerName ||
+    Number(amount) !== debt.amount ||
+    description.trim() !== debt.description ||
+    dueDate !== debt.dueDate.slice(0, 10);
+
   const save = async () => {
     setError('');
     const value = Number(amount);
@@ -53,8 +59,8 @@ export default function EditDebtScreen() {
         dueDate: parsedDate.toISOString(),
       });
       router.back();
-    } catch {
-      setError('Could not save changes. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -78,8 +84,8 @@ export default function EditDebtScreen() {
       setIsDeleting(true);
       await deleteDebt(debt.id);
       router.back();
-    } catch {
-      setError('Could not delete this debt. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete this debt. Please try again.');
       setIsDeleting(false);
     }
   };
@@ -89,8 +95,8 @@ export default function EditDebtScreen() {
       setIsMarking(true);
       await markDebtPaid(debt.id);
       router.back();
-    } catch {
-      setError('Could not update payment status. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update payment status. Please try again.');
       setIsMarking(false);
     }
   };
@@ -104,7 +110,7 @@ export default function EditDebtScreen() {
       <Field label="Description" value={description} onChangeText={setDescription} placeholder="What was purchased?" editable={!busy} />
       <Field label="Due date" value={dueDate} onChangeText={setDueDate} placeholder="YYYY-MM-DD" editable={!busy} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy} />
+      <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy || !hasChanges} />
       {debt.status !== 'Paid' ? (
         <SecondaryButton label={isMarking ? 'Updating...' : 'Mark as paid'} onPress={handleMarkPaid} />
       ) : null}
