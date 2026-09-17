@@ -57,8 +57,8 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   );
 
   if (tables.length === 0) {
-    await db.execAsync(`
-           CREATE TABLE IF NOT EXISTS users (
+        await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       displayName TEXT,
       email TEXT UNIQUE NOT NULL,
@@ -66,6 +66,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       passwordSalt TEXT,
       businessName TEXT,
       photoUri TEXT,
+      firebaseUid TEXT,
       createdAt TEXT NOT NULL,
       lastLoginAt TEXT
     );
@@ -79,6 +80,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       quantity INTEGER NOT NULL DEFAULT 0,
       lowStockThreshold INTEGER NOT NULL DEFAULT 0,
       photoUri TEXT,
+      syncedAt TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     );
@@ -88,6 +90,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       userId TEXT NOT NULL REFERENCES users(id),
       total REAL NOT NULL,
       profit REAL NOT NULL,
+      syncedAt TEXT,
       createdAt TEXT NOT NULL
     );
 
@@ -99,6 +102,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       quantity INTEGER NOT NULL,
       unitPrice REAL NOT NULL,
       unitCost REAL NOT NULL,
+      syncedAt TEXT,
       FOREIGN KEY (saleId) REFERENCES sales(id) ON DELETE CASCADE,
       FOREIGN KEY (productId) REFERENCES products(id)
     );
@@ -110,6 +114,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       amount REAL NOT NULL,
       category TEXT NOT NULL,
       note TEXT,
+      syncedAt TEXT,
       createdAt TEXT NOT NULL
     );
 
@@ -122,6 +127,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       amountPaid REAL NOT NULL DEFAULT 0,
       dueDate TEXT NOT NULL,
       status TEXT NOT NULL,
+      syncedAt TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     );
@@ -149,9 +155,15 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   await addColumn('sale_items', 'userId');
   await addColumn('expenses', 'userId');
   await addColumn('debts', 'userId');
-   await addColumn('users', 'photoUri');
+     await addColumn('users', 'photoUri');
   await addColumn('products', 'photoUri');
   await addColumn('users', 'passwordSalt');
+    await addColumn('products', 'syncedAt');
+  await addColumn('sales', 'syncedAt');
+  await addColumn('sale_items', 'syncedAt');
+  await addColumn('expenses', 'syncedAt');
+  await addColumn('debts', 'syncedAt');
+  await addColumn('users', 'firebaseUid');
 
   if (legacyOwner) {
     for (const table of ['products', 'sales', 'sale_items', 'expenses', 'debts']) {

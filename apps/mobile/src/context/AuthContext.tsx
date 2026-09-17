@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type PropsWithChildren } from 'react';
 import { getDatabase } from '@/db/database';
 import { generateSalt, hashPassword, legacyHashPassword } from '@/utils/password';
+import { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, firebaseSignOut } from '@/firebase/config';
 
 interface User {
   id: string;
@@ -8,6 +9,7 @@ interface User {
   email: string;
   businessName?: string;
   photoUri?: string;
+  firebaseUid?: string;
 }
 
 interface AuthContextValue {
@@ -23,6 +25,24 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Best-effort: signs the local account into Firebase Auth too, so Firestore
+// sync has a real authenticated session. Failures here are logged but never
+// block local sign-in/signup — the app must keep working fully offline.
+async function ensureFirebaseAuth(email: string, password: string, localUserId: string): Promise<string | undefined> {
+  try {
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    return credential.user.uid;
+  } catch (signInError) {
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      return credential.user.uid;
+    } catch (signUpError) {
+      console.warn('Firebase Auth unavailable (offline or config issue), continuing with local auth only:', signUpError);
+      return undefined;
+    }
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,8 +51,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const checkAuth = async () => {
       try {
         const db = await getDatabase();
-        const lastUser = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null }>(
-          `SELECT id, displayName, email, businessName, photoUri FROM users WHERE lastLoginAt IS NOT NULL ORDER BY lastLoginAt DESC LIMIT 1`
+        const lastUser = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null }>(
+          `SELECT id, displayName, email, businessName, photoUri, firebaseUid FROM users WHERE lastLoginAt IS NOT NULL ORDER BY lastLoginAt DESC LIMIT 1`
         );
 
         if (lastUser) {
@@ -42,6 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             email: lastUser.email,
             businessName: lastUser.businessName,
             photoUri: lastUser.photoUri || undefined,
+            firebaseUid: lastUser.firebaseUid || undefined,
           });
         }
       } catch (error) {
@@ -78,7 +99,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       );
       await db.runAsync(`UPDATE users SET passwordSalt = ? WHERE id = ?`, [salt, userId]);
 
-      setUser({ id: userId, displayName: businessName, email: email.toLowerCase(), businessName });
+      const firebaseUid = await ensureFirebaseAuth(email.toLowerCase(), password, userId);
+      if (firebaseUid) {
+        await db.runAsync(`UPDATE users SET firebaseUid = ? WHERE id = ?`, [firebaseUid, userId]);
+      }
+
+      setUser({ id: userId, displayName: businessName, email: email.toLowerCase(), businessName, firebaseUid });
     } catch (error) {
       console.error('Signup failed:', error);
       throw error;
@@ -88,8 +114,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const login = async (email: string, password: string) => {
     try {
       const db = await getDatabase();
-      const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; passwordHash: string; passwordSalt: string | null }>(
-        `SELECT id, displayName, email, businessName, photoUri, passwordHash, passwordSalt FROM users WHERE email = ?`,
+      const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; passwordHash: string; passwordSalt: string | null; firebaseUid: string | null }>(
+        `SELECT id, displayName, email, businessName, photoUri, passwordHash, passwordSalt, firebaseUid FROM users WHERE email = ?`,
         [email.toLowerCase()]
       );
 
@@ -100,12 +126,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       let isValid = false;
 
       if (record.passwordSalt) {
-        // Account already uses the new salted+iterated hash.
         const attemptedHash = await hashPassword(password, record.passwordSalt);
         isValid = attemptedHash === record.passwordHash;
       } else {
-        // Legacy account: verify against the old XOR+base64 hash, then
-        // transparently upgrade it to the new hashing scheme on success.
         const legacyHash = legacyHashPassword(password);
         isValid = legacyHash === record.passwordHash;
         if (isValid) {
@@ -122,12 +145,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const now = new Date().toISOString();
       await db.runAsync(`UPDATE users SET lastLoginAt = ? WHERE id = ?`, [now, record.id]);
 
+      let firebaseUid = record.firebaseUid || undefined;
+      if (!firebaseUid) {
+        firebaseUid = await ensureFirebaseAuth(email.toLowerCase(), password, record.id);
+        if (firebaseUid) {
+          await db.runAsync(`UPDATE users SET firebaseUid = ? WHERE id = ?`, [firebaseUid, record.id]);
+        }
+      } else {
+        await ensureFirebaseAuth(email.toLowerCase(), password, record.id);
+      }
+
       setUser({
         id: record.id,
         displayName: record.displayName,
         email: record.email,
         businessName: record.businessName,
         photoUri: record.photoUri || undefined,
+        firebaseUid,
       });
     } catch (error) {
       console.error('Login failed:', error);
@@ -140,6 +174,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (user) {
         const db = await getDatabase();
         await db.runAsync(`UPDATE users SET lastLoginAt = NULL WHERE id = ?`, [user.id]);
+      }
+      try {
+        await firebaseSignOut(auth);
+      } catch (error) {
+        console.warn('Firebase sign-out skipped:', error);
       }
       setUser(null);
     } catch (error) {

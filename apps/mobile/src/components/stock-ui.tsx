@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
+import { onSyncStatusChange, type SyncStatus } from '@/sync/syncService';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { formatNaira } from '@/utils/currency';
@@ -7,6 +8,20 @@ import type { Debt, Expense, Product, Sale } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 export const colors = { ink: '#1A2E22', muted: '#8B8172', line: '#E8E1D3', paper: '#F7F4EC', white: '#FFFFFF', green: '#2D5C3E', mint: '#E4EBE0', yellow: '#EFD9A8', red: '#C9622D' };
+
+function SyncBadge() {
+  const [status, setStatus] = useState<SyncStatus>('idle');
+  useEffect(() => onSyncStatusChange((newStatus) => setStatus(newStatus)), []);
+  if (status === 'idle') return null;
+  const config = {
+    syncing: { text: 'Syncing…', color: colors.muted },
+    synced: { text: 'Synced', color: colors.green },
+    offline: { text: 'Offline', color: colors.muted },
+    error: { text: 'Sync error', color: colors.red },
+  }[status];
+  if (!config) return null;
+  return <Text style={[styles.syncBadge, { color: config.color }]}>{config.text}</Text>;
+}
 
 export function Screen({ children, title, subtitle, action, back = false }: PropsWithChildren<{ title?: string; subtitle?: string; action?: ReactNode; back?: boolean }>) {
   const { isSignedIn, logout } = useAuth();
@@ -17,7 +32,7 @@ export function Screen({ children, title, subtitle, action, back = false }: Prop
       router.replace('/login' as never);
     }
   };
-  return <View style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><View style={styles.topbar}>{back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()}><Text style={styles.back}>Back</Text></Pressable> : <Text style={styles.brand}>StockLite</Text>}{action || (!back && isSignedIn ? <Pressable accessibilityRole="button" onPress={handleLogout}><Text style={styles.link}>Log out</Text></Pressable> : null)}</View>{title ? <View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View> : null}{children}</ScrollView><BottomNavigation /></View>;
+  return <View style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><View style={styles.topbar}>{back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()}><Text style={styles.back}>Back</Text></Pressable> : <Text style={styles.brand}>StockLite</Text>}<View style={styles.topbarRight}>{!back && isSignedIn ? <SyncBadge /> : null}{action || (!back && isSignedIn ? <Pressable accessibilityRole="button" onPress={handleLogout}><Text style={styles.link}>Log out</Text></Pressable> : null)}</View></View>{title ? <View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View> : null}{children}</ScrollView><BottomNavigation /></View>;
 }
 
 export function BottomNavigation() {
@@ -83,6 +98,19 @@ export function ActionTile({ label, onPress }: { label: string; onPress: () => v
 
 export function SectionHeader({ title, action, onPress }: { title: string; action?: string; onPress?: () => void }) { return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{action && <Pressable onPress={onPress}><Text style={styles.link}>{action}</Text></Pressable>}</View>; }
 export function StatCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <View style={[styles.stat, accent && styles.statAccent]}><Text style={[styles.statLabel, accent && styles.lightText]}>{label}</Text><Text style={[styles.statValue, accent && styles.lightText]}>{value}</Text></View>; }
+export function StatRow({ items }: { items: { label: string; value: string }[] }) {
+  return (
+    <View style={styles.statRow}>
+      {items.map((item, index) => (
+        <View key={item.label} style={[styles.statRowItem, index < items.length - 1 && styles.statRowDivider]}>
+          <Text style={styles.statRowValue}>{item.value}</Text>
+          <Text style={styles.statRowLabel}>{item.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function EmptyState({ title, text }: { title: string; text: string }) { return <View style={styles.empty}><Text style={styles.emptyMark}>+</Text><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyText}>{text}</Text></View>; }
 export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor="#9aa59d" style={styles.input} {...props} />{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
 
@@ -196,7 +224,9 @@ export function DebtRow({ debt, onPaid, onPress }: { debt: Debt; onPaid?: () => 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   content: { width: '100%', maxWidth: 980, alignSelf: 'center', padding: 20, paddingBottom: 110 },
-  topbar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    topbar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  syncBadge: { fontSize: 11, fontWeight: '700' },
   brand: { color: colors.green, fontWeight: '800', fontSize: 18 },
   back: { color: colors.green, fontSize: 16, fontWeight: '700' },
   heading: { marginTop: 20, marginBottom: 22 },
@@ -208,8 +238,13 @@ const styles = StyleSheet.create({
   stat: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, padding: 17, borderRadius: 10, minWidth: 140, flex: 1 },
   statAccent: { backgroundColor: colors.green, borderColor: colors.green },
   statLabel: { color: colors.muted, fontSize: 13, marginBottom: 9 },
-  statValue: { color: colors.ink, fontSize: 22, fontWeight: '800' },
-  lightText: { color: colors.white },
+   statValue: { color: colors.ink, fontSize: 22, fontWeight: '800', fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'serif' },
+   lightText: { color: colors.white },
+   statRow: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 10, marginTop: 10 },
+     statRowItem: { width: '33.33%', paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', minWidth: 0 },
+  statRowDivider: { borderRightWidth: 1, borderRightColor: colors.line },
+    statRowValue: { color: colors.ink, fontSize: 14, fontWeight: '800', fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'serif' },
+  statRowLabel: { color: colors.muted, fontSize: 11, marginTop: 4, textAlign: 'center' },
   primary: { backgroundColor: colors.green, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8, transitionProperty: 'transform, background-color, box-shadow', transitionDuration: '150ms' } as any,
   primaryHovered: { backgroundColor: '#254a32', transform: [{ translateY: -1 }], boxShadow: '0 4px 10px rgba(26,46,34,0.18)' } as any,
   primaryPressed: { transform: [{ translateY: 0 }], backgroundColor: '#1f3f2a' } as any,

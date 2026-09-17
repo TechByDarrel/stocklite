@@ -1,13 +1,21 @@
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AuthProvider, useAuth} from '@/context/AuthContext';
 import { StockLiteProvider } from '@/context/StockLiteContext';
 import { Redirect, Stack, useSegments } from 'expo-router';
 import Head from 'expo-router/head';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors } from '@/components/stock-ui';
+import { useEffect } from 'react';
+import { startAutoSync } from '@/sync/syncService';
 
 function RootLayoutContent() {
   const { isSignedIn, isLoading } = useAuth();
   const segments = useSegments();
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const stopSync = startAutoSync();
+    return () => stopSync();
+  }, [isSignedIn]);
 
   if (isLoading) {
     return <View style={styles.loading}><ActivityIndicator color={colors.green} /><View style={styles.loadingBar} /></View>;
