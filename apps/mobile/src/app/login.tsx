@@ -98,10 +98,11 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <PrimaryButton
+               <PrimaryButton
           label={isLoading ? 'Signing in...' : 'Sign in'}
           onPress={handleLogin}
           disabled={isLoading}
+          loading={isLoading}
         />
       </View>
 

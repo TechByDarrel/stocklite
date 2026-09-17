@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { onSyncStatusChange, type SyncStatus } from '@/sync/syncService';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { formatNaira } from '@/utils/currency';
 import type { Debt, Expense, Product, Sale } from '@/types';
@@ -40,7 +40,7 @@ export function BottomNavigation() {
   return <View style={styles.nav}>{items.map(([label, path]) => <Pressable key={path} accessibilityRole="button" accessibilityLabel={label} style={styles.navItem} onPress={() => router.replace(path as never)}><Text style={styles.navIcon}>{label === 'Home' ? 'H' : label === 'Products' ? 'P' : label === 'Sales' ? 'S' : '+'}</Text><Text style={styles.navLabel}>{label}</Text></Pressable>)}</View>;
 }
 
-export function PrimaryButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+export function PrimaryButton({ label, onPress, disabled = false, loading = false }: { label: string; onPress: () => void; disabled?: boolean; loading?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
   return <Pressable
@@ -53,11 +53,13 @@ export function PrimaryButton({ label, onPress, disabled = false }: { label: str
     onPressOut={() => setPressed(false)}
     style={[
       styles.primary,
+      styles.primaryRow,
       disabled && styles.disabled,
       hovered && !disabled && styles.primaryHovered,
       pressed && !disabled && styles.primaryPressed,
     ]}
   >
+    {loading ? <ActivityIndicator color={colors.white} size="small" style={styles.primarySpinner} /> : null}
     <Text style={styles.primaryText}>{label}</Text>
   </Pressable>;
 }
@@ -248,6 +250,8 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.green, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8, transitionProperty: 'transform, background-color, box-shadow', transitionDuration: '150ms' } as any,
   primaryHovered: { backgroundColor: '#254a32', transform: [{ translateY: -1 }], boxShadow: '0 4px 10px rgba(26,46,34,0.18)' } as any,
   primaryPressed: { transform: [{ translateY: 0 }], backgroundColor: '#1f3f2a' } as any,
+   primaryRow: { flexDirection: 'row', justifyContent: 'center' },
+  primarySpinner: { marginRight: 8 },
   primaryText: { color: colors.white, fontWeight: '800', fontSize: 15 },
   secondary: { backgroundColor: colors.mint, borderRadius: 8, paddingVertical: 13, alignItems: 'center', marginTop: 8, transitionProperty: 'transform, background-color', transitionDuration: '150ms' } as any,
   secondaryHovered: { backgroundColor: '#d8e2d2', transform: [{ translateY: -1 }] } as any,

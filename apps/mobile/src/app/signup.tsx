@@ -129,10 +129,11 @@ export default function SignupScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <PrimaryButton
+               <PrimaryButton
           label={isLoading ? 'Creating account...' : 'Create account'}
           onPress={handleSignup}
           disabled={isLoading}
+          loading={isLoading}
         />
       </View>
 
