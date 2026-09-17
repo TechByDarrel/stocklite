@@ -44,7 +44,10 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       displayName TEXT,
       email TEXT UNIQUE NOT NULL,
       passwordHash TEXT NOT NULL,
+      passwordSalt TEXT,
       businessName TEXT,
+      photoUri TEXT,
+      firebaseUid TEXT,
       createdAt TEXT NOT NULL,
       lastLoginAt TEXT
     );
@@ -57,20 +60,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   );
 
   if (tables.length === 0) {
-        await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      displayName TEXT,
-      email TEXT UNIQUE NOT NULL,
-      passwordHash TEXT NOT NULL,
-      passwordSalt TEXT,
-      businessName TEXT,
-      photoUri TEXT,
-      firebaseUid TEXT,
-      createdAt TEXT NOT NULL,
-      lastLoginAt TEXT
-    );
-
+    await db.execAsync(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       ownerId TEXT NOT NULL REFERENCES users(id),
@@ -149,16 +139,16 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
     }
   };
 
-    await addColumn('products', 'ownerId');
+  await addColumn('products', 'ownerId');
   await addColumn('users', 'displayName');
   await addColumn('sales', 'userId');
   await addColumn('sale_items', 'userId');
   await addColumn('expenses', 'userId');
   await addColumn('debts', 'userId');
-     await addColumn('users', 'photoUri');
+  await addColumn('users', 'photoUri');
   await addColumn('products', 'photoUri');
   await addColumn('users', 'passwordSalt');
-    await addColumn('products', 'syncedAt');
+  await addColumn('products', 'syncedAt');
   await addColumn('sales', 'syncedAt');
   await addColumn('sale_items', 'syncedAt');
   await addColumn('expenses', 'syncedAt');
