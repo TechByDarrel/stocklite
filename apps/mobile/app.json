@@ -13,9 +13,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#2D5C3E",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.mobile"
@@ -40,6 +38,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ea94a925-ce6f-4415-9005-1b3bf19e3974"
+      }
     }
   }
 }
