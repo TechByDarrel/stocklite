@@ -1,62 +1,79 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text } from 'react-native';
-import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PhotoPicker, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
-export default function EditDebtScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { debts, updateDebt, deleteDebt, markDebtPaid } = useStockLite();
-  const debt = debts.find((d) => d.id === id);
+const numberValue = (value: string) => Number(value.replace(/,/g, ''));
 
-  const [customerName, setCustomerName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
+export default function EditProductScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { products, updateProduct, deleteProduct } = useStockLite();
+  const product = products.find((p) => p.id === id);
+
+  const [name, setName] = useState('');
+  const [cost, setCost] = useState('');
+  const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [threshold, setThreshold] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isMarking, setIsMarking] = useState(false);
 
   useEffect(() => {
-    if (debt) {
-      setCustomerName(debt.customerName);
-      setAmount(String(debt.amount));
-      setDescription(debt.description);
-      setDueDate(debt.dueDate.slice(0, 10));
+    if (product) {
+      setName(product.name);
+      setCost(String(product.costPrice));
+      setPrice(String(product.sellingPrice));
+      setQuantity(String(product.quantity));
+      setThreshold(String(product.lowStockThreshold));
+      setPhotoUri(product.photoUri || null);
     }
-  }, [debt]);
+  }, [product]);
 
-  if (!debt) {
+  if (!product) {
     return (
-      <Screen title="Debt not found" back>
-        <Text style={styles.error}>This debt could not be found. It may have been deleted.</Text>
+      <Screen title="Product not found" back>
+        <Text style={styles.error}>This product could not be found. It may have been deleted.</Text>
       </Screen>
     );
   }
 
   const hasChanges =
-    customerName.trim() !== debt.customerName ||
-    Number(amount) !== debt.amount ||
-    description.trim() !== debt.description ||
-    dueDate !== debt.dueDate.slice(0, 10);
+    name.trim() !== product.name ||
+    numberValue(cost) !== product.costPrice ||
+    numberValue(price) !== product.sellingPrice ||
+    numberValue(quantity) !== product.quantity ||
+    numberValue(threshold) !== product.lowStockThreshold ||
+    (photoUri || undefined) !== (product.photoUri || undefined);
 
   const save = async () => {
     setError('');
-    const value = Number(amount);
-    const parsedDate = new Date(dueDate);
+    const costValue = numberValue(cost);
+    const priceValue = numberValue(price);
+    const quantityValue = numberValue(quantity);
+    const thresholdValue = numberValue(threshold);
 
-    if (!customerName.trim()) return setError('Customer name is required.');
-    if (!Number.isFinite(value) || value <= 0) return setError('Amount must be a positive number.');
-    if (!dueDate.trim() || Number.isNaN(parsedDate.getTime())) return setError('Enter a valid due date.');
+    if (!name.trim()) return setError('Product name is required.');
+    if (
+      ![costValue, priceValue].every((value) => Number.isFinite(value) && value > 0) ||
+      ![quantityValue, thresholdValue].every((value) => Number.isFinite(value) && value >= 0) ||
+      quantityValue % 1 !== 0 ||
+      thresholdValue % 1 !== 0
+    ) {
+      return setError('Enter positive prices and valid whole-number stock values.');
+    }
 
     try {
       setIsSaving(true);
-      await updateDebt(debt.id, {
-        customerName: customerName.trim(),
-        amount: value,
-        description: description.trim(),
-        dueDate: parsedDate.toISOString(),
+      await updateProduct(product.id, {
+        name: name.trim(),
+        costPrice: costValue,
+        sellingPrice: priceValue,
+        quantity: quantityValue,
+        lowStockThreshold: thresholdValue,
+        photoUri: photoUri || undefined,
       });
       router.back();
     } catch (err) {
@@ -68,12 +85,12 @@ export default function EditDebtScreen() {
 
   const confirmDelete = () => {
     if (Platform.OS === 'web') {
-      if (window.confirm(`Delete debt for "${debt.customerName}"? This cannot be undone.`)) {
+      if (window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
         runDelete();
       }
       return;
     }
-    Alert.alert('Delete debt', `Delete debt for "${debt.customerName}"? This cannot be undone.`, [
+    Alert.alert('Delete product', `Delete "${product.name}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: runDelete },
     ]);
@@ -82,39 +99,27 @@ export default function EditDebtScreen() {
   const runDelete = async () => {
     try {
       setIsDeleting(true);
-      await deleteDebt(debt.id);
+      await deleteProduct(product.id);
       router.back();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete this debt. Please try again.');
+      setError(err instanceof Error ? err.message : 'Could not delete this product. Please try again.');
       setIsDeleting(false);
     }
   };
 
-  const handleMarkPaid = async () => {
-    try {
-      setIsMarking(true);
-      await markDebtPaid(debt.id);
-      router.back();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update payment status. Please try again.');
-      setIsMarking(false);
-    }
-  };
-
-  const busy = isSaving || isDeleting || isMarking;
+  const busy = isSaving || isDeleting;
 
   return (
-    <Screen title="Edit debt" subtitle="Update this customer's balance" back>
-      <Field label="Customer name" value={customerName} onChangeText={setCustomerName} placeholder="e.g. Chinedu" editable={!busy} />
-      <Field label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="0" editable={!busy} />
-      <Field label="Description" value={description} onChangeText={setDescription} placeholder="What was purchased?" editable={!busy} />
-      <Field label="Due date" value={dueDate} onChangeText={setDueDate} placeholder="YYYY-MM-DD" editable={!busy} />
+    <Screen title="Edit product" subtitle="Update this item's details" back>
+      <PhotoPicker uri={photoUri} onPick={setPhotoUri} label="Add product photo" />
+      <Field label="Product name" value={name} onChangeText={setName} placeholder="e.g. Rice 5kg" editable={!busy} />
+      <Field label="Cost price" value={cost} onChangeText={setCost} keyboardType="numeric" placeholder="0" editable={!busy} />
+      <Field label="Selling price" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="0" editable={!busy} />
+      <Field label="Quantity" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="0" editable={!busy} />
+      <Field label="Low stock threshold" value={threshold} onChangeText={setThreshold} keyboardType="numeric" placeholder="5" editable={!busy} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton label={isSaving ? 'Saving...' : 'Save changes'} onPress={save} disabled={busy || !hasChanges} />
-      {debt.status !== 'Paid' ? (
-        <SecondaryButton label={isMarking ? 'Updating...' : 'Mark as paid'} onPress={handleMarkPaid} />
-      ) : null}
-      <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete debt'} onPress={confirmDelete} />
+      <SecondaryButton label={isDeleting ? 'Deleting...' : 'Delete product'} onPress={confirmDelete} />
     </Screen>
   );
 }

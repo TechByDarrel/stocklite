@@ -38,11 +38,11 @@ async function getFirebaseUid(localUserId: string): Promise<string | null> {
   return row?.firebaseUid || null;
 }
 
-async function pushTable(localUserId: string, firebaseUid: string, tableName: string, collectionName: string) {
+async function pushTable(localUserId: string, firebaseUid: string, tableName: string, collectionName: string, ownerColumn: 'userId' | 'ownerId') {
   const database = await getDatabase();
   const unsyncedRows = await database.getAllAsync<Record<string, any>>(
-    `SELECT * FROM ${tableName} WHERE (userId = ? OR ownerId = ?) AND syncedAt IS NULL`,
-    [localUserId, localUserId]
+    `SELECT * FROM ${tableName} WHERE ${ownerColumn} = ? AND syncedAt IS NULL`,
+    [localUserId]
   );
 
   for (const row of unsyncedRows) {
@@ -84,11 +84,11 @@ export async function syncNow(): Promise<{ success: boolean; pushedCount: number
   notify();
 
   try {
-    let totalPushed = 0;
-    totalPushed += await pushTable(localUserId, firebaseUid, 'products', 'products');
-    totalPushed += await pushTable(localUserId, firebaseUid, 'expenses', 'expenses');
-    totalPushed += await pushTable(localUserId, firebaseUid, 'debts', 'debts');
-    totalPushed += await pushTable(localUserId, firebaseUid, 'sales', 'sales');
+       let totalPushed = 0;
+    totalPushed += await pushTable(localUserId, firebaseUid, 'products', 'products', 'ownerId');
+    totalPushed += await pushTable(localUserId, firebaseUid, 'expenses', 'expenses', 'userId');
+    totalPushed += await pushTable(localUserId, firebaseUid, 'debts', 'debts', 'userId');
+    totalPushed += await pushTable(localUserId, firebaseUid, 'sales', 'sales', 'userId');
 
     currentStatus = 'synced';
     lastSyncedAt = new Date().toISOString();
