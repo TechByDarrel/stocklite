@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, pickImage, PrimaryButton, Screen, SectionHeader } from '@/components/stock-ui';
+import { colors, pickImage, PrimaryButton, Screen, SectionHeader, useTheme } from '@/components/stock-ui';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
   const { user, logout, updateProfilePhoto } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const displayName = user?.displayName || user?.businessName || 'Business owner';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
@@ -41,6 +42,11 @@ export default function ProfileScreen() {
       <Text style={styles.label}>Business name</Text><Text style={styles.value}>{user?.businessName || 'Not set'}</Text>
       <Text style={styles.label}>Account email</Text><Text style={styles.value}>{user?.email}</Text>
     </View>
+        <SectionHeader title="Preferences" />
+    <Pressable accessibilityRole="button" style={styles.action} onPress={toggleTheme}>
+      <Text style={styles.actionText}>Dark mode</Text>
+      <Text style={styles.toggleValue}>{isDark ? 'On' : 'Off'}</Text>
+    </Pressable>
     <SectionHeader title="Account" />
     <Pressable accessibilityRole="button" style={styles.action} onPress={() => router.push('/edit-profile' as never)}><Text style={styles.actionText}>Edit profile</Text><Text style={styles.chevron}>›</Text></Pressable>
     <PrimaryButton label="Log out" onPress={handleLogout} />
@@ -65,6 +71,7 @@ const styles = StyleSheet.create({
   value: { color: colors.ink, fontWeight: '700', marginBottom: 16 },
   action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   actionText: { color: colors.ink, fontWeight: '700' },
-  chevron: { color: colors.green, fontSize: 24 },
+    chevron: { color: colors.green, fontSize: 24 },
+  toggleValue: { color: colors.green, fontWeight: '800', fontSize: 14 },
   note: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 20 },
 });

@@ -3,7 +3,7 @@ import { StockLiteProvider } from '@/context/StockLiteContext';
 import { Redirect, Stack, useSegments } from 'expo-router';
 import Head from 'expo-router/head';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { colors } from '@/components/stock-ui';
+import { colors, ThemeProvider } from '@/components/stock-ui';
 import { useEffect } from 'react';
 import { startAutoSync } from '@/sync/syncService';
 
@@ -36,13 +36,15 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StockLiteProvider>
-        <Head>
-          <title>StockLite</title>
-        </Head>
-        <RootLayoutContent />
-      </StockLiteProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <StockLiteProvider>
+          <Head>
+            <title>StockLite</title>
+          </Head>
+          <RootLayoutContent />
+        </StockLiteProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

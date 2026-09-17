@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Field, PrimaryButton } from '@/components/stock-ui';
 import { colors } from '@/components/stock-ui';
@@ -70,7 +70,8 @@ export default function LoginScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.header}>
+           <View style={styles.header}>
+        <Image source={require('../../assets/images/icon.png')} style={styles.logo} />
         <Text style={styles.brand}>StockLite</Text>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>Sign in to keep your shop moving.</Text>
@@ -129,6 +130,12 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 32,
     paddingHorizontal: 8,
+  },
+    logo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    marginBottom: 16,
   },
   brand: {
     color: colors.green,
