@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import { createContext, PropsWithChildren, ReactNode, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { formatNaira } from '@/utils/currency';
 import type { Debt, Expense, Product, Sale } from '@/types';
@@ -22,8 +24,10 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     (async () => {
       try {
-        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
+        const saved = await AsyncStorage.getItem(THEME_KEY);
         if (saved === 'dark') setIsDark(true);
+      } catch (error) {
+        console.warn('Failed to load theme preference:', error);
       } finally {
         setReady(true);
       }
@@ -33,9 +37,9 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const toggleTheme = () => {
     setIsDark((current) => {
       const next = !current;
-      try {
-        if (typeof localStorage !== 'undefined') localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
-      } catch {}
+      AsyncStorage.setItem(THEME_KEY, next ? 'dark' : 'light').catch((error) => {
+        console.warn('Failed to save theme preference:', error);
+      });
       return next;
     });
   };
@@ -160,6 +164,7 @@ function SyncBadge() {
 export function Screen({ children, title, subtitle, action, back = false }: PropsWithChildren<{ title?: string; subtitle?: string; action?: ReactNode; back?: boolean }>) {
   const { colors: c } = useTheme();
   const styles = makeStyles(c);
+  const insets = useSafeAreaInsets();
   const { isSignedIn, logout, user } = useAuth();
   const handleLogout = async () => {
     try {
@@ -169,7 +174,7 @@ export function Screen({ children, title, subtitle, action, back = false }: Prop
     }
   };
   const initials = (user?.displayName || user?.businessName || '?').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-  return <View style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><View style={styles.topbar}>{back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()}><Text style={styles.back}>Back</Text></Pressable> : <View style={styles.brandRow}>{!back && isSignedIn ? <Pressable accessibilityRole="button" accessibilityLabel="Go to profile" onPress={() => router.push('/profile' as never)} style={styles.brandAvatar}>{user?.photoUri ? <Image source={{ uri: user.photoUri }} style={styles.brandAvatarImage} /> : <Text style={styles.brandAvatarText}>{initials}</Text>}</Pressable> : null}<Text style={styles.brand}>StockLite</Text></View>}<View style={styles.topbarRight}>{!back && isSignedIn ? <SyncBadge /> : null}{action || (!back && isSignedIn ? <Pressable accessibilityRole="button" onPress={handleLogout}><Text style={styles.link}>Log out</Text></Pressable> : null)}</View></View>{title ? <View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View> : null}{children}</ScrollView><BottomNavigation /></View>;
+  return <View style={[styles.screen, { paddingTop: insets.top }]}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><View style={styles.topbar}>{back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()}><Text style={styles.back}>Back</Text></Pressable> : <View style={styles.brandRow}>{!back && isSignedIn ? <Pressable accessibilityRole="button" accessibilityLabel="Go to profile" onPress={() => router.push('/profile' as never)} style={styles.brandAvatar}>{user?.photoUri ? <Image source={{ uri: user.photoUri }} style={styles.brandAvatarImage} /> : <Text style={styles.brandAvatarText}>{initials}</Text>}</Pressable> : null}<Text style={styles.brand}>StockLite</Text></View>}<View style={styles.topbarRight}>{!back && isSignedIn ? <SyncBadge /> : null}{action || (!back && isSignedIn ? <Pressable accessibilityRole="button" onPress={handleLogout}><Text style={styles.link}>Log out</Text></Pressable> : null)}</View></View>{title ? <View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View> : null}{children}</ScrollView><BottomNavigation /></View>;
 }
 
 export function BottomNavigation() {
