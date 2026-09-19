@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { Field, PhotoPicker, PrimaryButton, Screen } from '@/components/stock-ui';
+import { Field, PhotoPicker, PrimaryButton, Screen, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
 const numberValue = (value: string) => Number(value.replace(/,/g, ''));
 
 export default function AddProductScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { addProduct } = useStockLite();
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
@@ -62,4 +64,6 @@ export default function AddProductScreen() {
   );
 }
 
-const styles = StyleSheet.create({ error: { color: '#a13f32', marginBottom: 8 } });
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({ error: { color: colors.red, marginBottom: 8 } });
+}

@@ -1,10 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text } from 'react-native';
-import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, SecondaryButton, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
 export default function EditDebtScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { debts, updateDebt, deleteDebt, markDebtPaid } = useStockLite();
   const debt = debts.find((d) => d.id === id);
@@ -119,4 +121,6 @@ export default function EditDebtScreen() {
   );
 }
 
-const styles = StyleSheet.create({ error: { color: '#a13f32', marginBottom: 8 } });
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({ error: { color: colors.red, marginBottom: 8 } });
+}

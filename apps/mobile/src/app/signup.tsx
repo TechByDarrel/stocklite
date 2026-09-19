@@ -2,14 +2,15 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { Field, PrimaryButton, Screen } from '@/components/stock-ui';
-import { colors } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, useTheme } from '@/components/stock-ui';
 
 const MAX_NAME_LENGTH = 60;
 const MAX_EMAIL_LENGTH = 100;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function getPasswordStrength(password: string): { label: 'Weak' | 'Medium' | 'Strong'; score: number; color: string } {
+type ThemeColors = ReturnType<typeof useTheme>['colors'];
+
+function getPasswordStrength(password: string, colors: ThemeColors): { label: 'Weak' | 'Medium' | 'Strong'; score: number; color: string } {
   if (password.length < 6) return { label: 'Weak', score: 1, color: colors.red };
   const hasUpper = /[A-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
@@ -18,6 +19,8 @@ function getPasswordStrength(password: string): { label: 'Weak' | 'Medium' | 'St
 }
 
 export default function SignupScreen() {
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
   const { signup } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +28,7 @@ export default function SignupScreen() {
   const [businessName, setBusinessName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const strength = getPasswordStrength(password);
+  const strength = getPasswordStrength(password, c);
 
   const handleSignup = async () => {
     setError('');
@@ -148,84 +151,86 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  header: {
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-    logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    marginBottom: 16,
-  },
-  brand: {
-    color: colors.green,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-    marginBottom: 26,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.muted,
-    lineHeight: 21,
-  },
-  formContainer: {
-    marginBottom: 24,
-    gap: 16,
-  },
-  error: {
-    color: '#a13f32',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  strengthWrap: {
-    marginTop: -8,
-    gap: 5,
-  },
-  strengthTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.line,
-    overflow: 'hidden',
-  },
-  strengthFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  strengthLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.muted,
-  },
-  link: {
-    fontSize: 14,
-    color: colors.green,
-    fontWeight: '600',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.white,
+    },
+    contentContainer: {
+      flexGrow: 1,
+      padding: 16,
+      justifyContent: 'center',
+    },
+    header: {
+      marginBottom: 32,
+      paddingHorizontal: 8,
+    },
+      logo: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      marginBottom: 16,
+    },
+    brand: {
+      color: colors.green,
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+      marginBottom: 26,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.ink,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.muted,
+      lineHeight: 21,
+    },
+    formContainer: {
+      marginBottom: 24,
+      gap: 16,
+    },
+    error: {
+      color: colors.red,
+      fontSize: 14,
+      marginTop: 8,
+    },
+    strengthWrap: {
+      marginTop: -8,
+      gap: 5,
+    },
+    strengthTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.line,
+      overflow: 'hidden',
+    },
+    strengthFill: {
+      height: 4,
+      borderRadius: 2,
+    },
+    strengthLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+    },
+    footerText: {
+      fontSize: 14,
+      color: colors.muted,
+    },
+    link: {
+      fontSize: 14,
+      color: colors.green,
+      fontWeight: '600',
+    },
+  });
+}

@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Field, PrimaryButton, Screen } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 import type { SaleItem } from '@/types';
 import { formatNaira } from '@/utils/currency';
 
 export default function RecordSaleScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { products, recordSale } = useStockLite();
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -79,7 +81,7 @@ export default function RecordSaleScreen() {
         value={query}
         onChangeText={setQuery}
         placeholder="Search products..."
-        placeholderTextColor="#9aa59d"
+        placeholderTextColor={colors.muted}
         style={styles.search}
       />
 
@@ -140,10 +142,10 @@ export default function RecordSaleScreen() {
 
       <View style={styles.summary}>
         <Text style={styles.summaryTitle}>Sale summary</Text>
-        <Text>
+        <Text style={styles.summaryLine}>
           Subtotal <Text style={styles.value}>{formatNaira(total)}</Text>
         </Text>
-        <Text>
+        <Text style={styles.summaryLine}>
           Profit <Text style={styles.value}>{formatNaira(profit)}</Text>
         </Text>
         <Text style={styles.total}>
@@ -157,58 +159,62 @@ export default function RecordSaleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  search: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#dfe6df',
-    borderRadius: 8,
-    padding: 13,
-    fontSize: 16,
-    color: '#16221c',
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#dfe6df',
-    backgroundColor: '#fff',
-  },
-  optionThumb: { width: 36, height: 36, borderRadius: 6 },
-  optionThumbPlaceholder: { backgroundColor: '#dcefe4' },
-  optionText: { flex: 1 },
-  optionName: { fontWeight: '800', color: '#16221c' },
-  optionPrice: { color: '#6b776f', marginTop: 3, fontSize: 12 },
-  add: {
-    backgroundColor: '#dcefe4',
-    padding: 13,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  addText: { color: '#176b45', fontWeight: '800' },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#dfe6df',
-  },
-  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  itemThumb: { width: 32, height: 32, borderRadius: 6 },
-  itemName: { color: '#16221c', fontWeight: '700' },
-  itemValue: { color: '#176b45', fontWeight: '700' },
-  summary: { padding: 16, backgroundColor: '#fff', marginTop: 20, gap: 10 },
-  summaryTitle: { color: '#16221c', fontWeight: '800', fontSize: 16 },
-  value: { fontWeight: '700' },
-  total: {
-    fontWeight: '800',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#dfe6df',
-  },
-  error: { color: '#a13f32', marginTop: 10 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    search: {
+      backgroundColor: colors.white,
+      borderWidth: 1,
+      borderColor: colors.line,
+      borderRadius: 8,
+      padding: 13,
+      fontSize: 16,
+      color: colors.ink,
+    },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+      backgroundColor: colors.white,
+    },
+    optionThumb: { width: 36, height: 36, borderRadius: 6 },
+    optionThumbPlaceholder: { backgroundColor: colors.mint },
+    optionText: { flex: 1 },
+    optionName: { fontWeight: '800', color: colors.ink },
+    optionPrice: { color: colors.muted, marginTop: 3, fontSize: 12 },
+    add: {
+      backgroundColor: colors.mint,
+      padding: 13,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    addText: { color: colors.green, fontWeight: '800' },
+    item: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+    },
+    itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+    itemThumb: { width: 32, height: 32, borderRadius: 6 },
+    itemName: { color: colors.ink, fontWeight: '700' },
+    itemValue: { color: colors.green, fontWeight: '700' },
+    summary: { padding: 16, backgroundColor: colors.white, marginTop: 20, gap: 10 },
+    summaryTitle: { color: colors.ink, fontWeight: '800', fontSize: 16 },
+    summaryLine: { color: colors.ink },
+    value: { color: colors.ink, fontWeight: '700' },
+    total: {
+      color: colors.ink,
+      fontWeight: '800',
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.line,
+    },
+    error: { color: colors.red, marginTop: 10 },
+  });
+}

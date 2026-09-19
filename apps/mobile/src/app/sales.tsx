@@ -2,12 +2,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { useStockLite } from '@/context/StockLiteContext';
-import { colors, EmptyState, PrimaryButton, SaleRow, Screen, SectionHeader, StatCard } from '@/components/stock-ui';
+import { EmptyState, PrimaryButton, SaleRow, Screen, SectionHeader, StatCard, useTheme } from '@/components/stock-ui';
 import { formatNaira } from '@/utils/currency';
 
 const today = (value: string) => new Date(value).toDateString() === new Date().toDateString();
 
 export default function SalesScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { sales, products } = useStockLite();
   const [query, setQuery] = useState('');
 
@@ -40,7 +42,7 @@ export default function SalesScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search sales by product"
-          placeholderTextColor="#9aa59d"
+          placeholderTextColor={colors.muted}
           style={styles.search}
         />
       ) : null}
@@ -56,7 +58,9 @@ export default function SalesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  search: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 13, fontSize: 16, color: colors.ink, marginTop: 14, marginBottom: 4 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    search: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 13, fontSize: 16, color: colors.ink, marginTop: 14, marginBottom: 4 },
+  });
+}

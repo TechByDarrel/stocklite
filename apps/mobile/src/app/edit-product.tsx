@@ -1,12 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text } from 'react-native';
-import { Field, PhotoPicker, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PhotoPicker, PrimaryButton, Screen, SecondaryButton, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
 const numberValue = (value: string) => Number(value.replace(/,/g, ''));
 
 export default function EditProductScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, updateProduct, deleteProduct } = useStockLite();
   const product = products.find((p) => p.id === id);
@@ -124,4 +126,6 @@ export default function EditProductScreen() {
   );
 }
 
-const styles = StyleSheet.create({ error: { color: '#a13f32', marginBottom: 8 } });
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({ error: { color: colors.red, marginBottom: 8 } });
+}

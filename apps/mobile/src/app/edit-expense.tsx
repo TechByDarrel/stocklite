@@ -1,13 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Field, PrimaryButton, Screen, SecondaryButton } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, SecondaryButton, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 import type { ExpenseCategory } from '@/types';
 
 const categories: ExpenseCategory[] = ['Transport', 'Electricity', 'Diesel', 'Rent', 'Staff wages', 'Stock purchase', 'Data/Airtime', 'Repairs', 'Supplies', 'Other'];
 
 export default function EditExpenseScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { expenses, updateExpense, deleteExpense } = useStockLite();
   const expense = expenses.find((e) => e.id === id);
@@ -111,12 +113,14 @@ export default function EditExpenseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  label: { color: '#16221c', fontWeight: '700', marginBottom: 8 },
-  categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
-  category: { borderWidth: 1, borderColor: '#dfe6df', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 7, backgroundColor: '#fff' },
-  selected: { backgroundColor: '#176b45', borderColor: '#176b45' },
-  categoryText: { color: '#6b776f' },
-  selectedText: { color: '#fff', fontWeight: '700' },
-  error: { color: '#a13f32', marginBottom: 8 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    label: { color: colors.ink, fontWeight: '700', marginBottom: 8 },
+    categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+    category: { borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 7, backgroundColor: colors.white },
+    selected: { backgroundColor: colors.green, borderColor: colors.green },
+    categoryText: { color: colors.muted },
+    selectedText: { color: colors.white, fontWeight: '700' },
+    error: { color: colors.red, marginBottom: 8 },
+  });
+}

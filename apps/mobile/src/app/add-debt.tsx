@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { Field, PrimaryButton, Screen } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 
 export default function AddDebtScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { addDebt } = useStockLite();
   const [customerName, setCustomerName] = useState('');
   const [amount, setAmount] = useState('');
@@ -90,9 +92,11 @@ export default function AddDebtScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  error: {
-    color: '#a13f32',
-    marginBottom: 8,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    error: {
+      color: colors.red,
+      marginBottom: 8,
+    },
+  });
+}

@@ -1,10 +1,12 @@
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { Screen } from '@/components/stock-ui';
+import { Screen, useTheme } from '@/components/stock-ui';
 import { useStockLite } from '@/context/StockLiteContext';
 import { formatNaira } from '@/utils/currency';
 
 export default function SaleDetailScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sales } = useStockLite();
   const sale = sales.find((s) => s.id === id);
@@ -43,17 +45,19 @@ export default function SaleDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  error: { color: '#a13f32' },
-  summary: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#dbe4dc', borderRadius: 10, padding: 16, marginBottom: 20 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  summaryLabel: { color: '#68756d', fontSize: 14 },
-  summaryValue: { color: '#16221c', fontWeight: '800', fontSize: 16 },
-  summaryValueGreen: { color: '#176b45', fontWeight: '800', fontSize: 16 },
-  sectionLabel: { color: '#16221c', fontWeight: '800', fontSize: 16, marginBottom: 10 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#dbe4dc' },
-  itemMain: { flex: 1 },
-  itemName: { color: '#16221c', fontWeight: '700', fontSize: 15 },
-  itemMeta: { color: '#68756d', fontSize: 13, marginTop: 3 },
-  itemTotal: { color: '#16221c', fontWeight: '800', fontSize: 15 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    error: { color: colors.red },
+    summary: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 16, marginBottom: 20 },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    summaryLabel: { color: colors.muted, fontSize: 14 },
+    summaryValue: { color: colors.ink, fontWeight: '800', fontSize: 16 },
+    summaryValueGreen: { color: colors.green, fontWeight: '800', fontSize: 16 },
+    sectionLabel: { color: colors.ink, fontWeight: '800', fontSize: 16, marginBottom: 10 },
+    itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
+    itemMain: { flex: 1 },
+    itemName: { color: colors.ink, fontWeight: '700', fontSize: 15 },
+    itemMeta: { color: colors.muted, fontSize: 13, marginTop: 3 },
+    itemTotal: { color: colors.ink, fontWeight: '800', fontSize: 15 },
+  });
+}

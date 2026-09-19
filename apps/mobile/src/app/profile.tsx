@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, pickImage, PrimaryButton, Screen, SectionHeader, useTheme } from '@/components/stock-ui';
+import { pickImage, PrimaryButton, Screen, SectionHeader, useTheme } from '@/components/stock-ui';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
   const { user, logout, updateProfilePhoto } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
+  const styles = makeStyles(colors);
   const displayName = user?.displayName || user?.businessName || 'Business owner';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
@@ -54,24 +55,26 @@ export default function ProfileScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  identity: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  avatarWrap: { width: 64, height: 64 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarImage: { width: 64, height: 64, borderRadius: 32 },
-  avatarBadge: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
-  avatarBadgeText: { color: colors.ink, fontWeight: '800', fontSize: 14, lineHeight: 16 },
-  initials: { color: colors.white, fontSize: 20, fontWeight: '800' },
-  identityText: { marginLeft: 16, flex: 1 },
-  name: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  email: { color: colors.muted, marginTop: 4 },
-  photoLink: { color: colors.green, fontWeight: '700', marginTop: 6, fontSize: 13 },
-  details: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 16 },
-  label: { color: colors.muted, fontSize: 12, marginBottom: 4 },
-  value: { color: colors.ink, fontWeight: '700', marginBottom: 16 },
-  action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  actionText: { color: colors.ink, fontWeight: '700' },
-    chevron: { color: colors.green, fontSize: 24 },
-  toggleValue: { color: colors.green, fontWeight: '800', fontSize: 14 },
-  note: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 20 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    identity: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    avatarWrap: { width: 64, height: 64 },
+    avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    avatarImage: { width: 64, height: 64, borderRadius: 32 },
+    avatarBadge: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
+    avatarBadgeText: { color: colors.ink, fontWeight: '800', fontSize: 14, lineHeight: 16 },
+    initials: { color: colors.white, fontSize: 20, fontWeight: '800' },
+    identityText: { marginLeft: 16, flex: 1 },
+    name: { color: colors.ink, fontSize: 20, fontWeight: '800' },
+    email: { color: colors.muted, marginTop: 4 },
+    photoLink: { color: colors.green, fontWeight: '700', marginTop: 6, fontSize: 13 },
+    details: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 16 },
+    label: { color: colors.muted, fontSize: 12, marginBottom: 4 },
+    value: { color: colors.ink, fontWeight: '700', marginBottom: 16 },
+    action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    actionText: { color: colors.ink, fontWeight: '700' },
+      chevron: { color: colors.green, fontSize: 24 },
+    toggleValue: { color: colors.green, fontWeight: '800', fontSize: 14 },
+    note: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 20 },
+  });
+}

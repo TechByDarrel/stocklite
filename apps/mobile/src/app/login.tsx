@@ -2,18 +2,21 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { Field, PrimaryButton } from '@/components/stock-ui';
-import { colors } from '@/components/stock-ui';
+import { Field, PrimaryButton, useTheme } from '@/components/stock-ui';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
 // In-memory only: resets on app reload. This is a basic deterrent against
 // casual repeated guessing, not a substitute for real backend rate-limiting.
 const attemptsByEmail = new Map<string, { count: number; lockedUntil: number }>();
 
 export default function LoginScreen() {
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -117,66 +120,68 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  header: {
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-    logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    marginBottom: 16,
-  },
-  brand: {
-    color: colors.green,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-    marginBottom: 26,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.muted,
-    lineHeight: 21,
-  },
-  formContainer: {
-    marginBottom: 24,
-    gap: 16,
-  },
-  error: {
-    color: '#a13f32',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.muted,
-  },
-  link: {
-    fontSize: 14,
-    color: colors.green,
-    fontWeight: '600',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.white,
+    },
+    contentContainer: {
+      flexGrow: 1,
+      padding: 16,
+      justifyContent: 'center',
+    },
+    header: {
+      marginBottom: 32,
+      paddingHorizontal: 8,
+    },
+      logo: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      marginBottom: 16,
+    },
+    brand: {
+      color: colors.green,
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+      marginBottom: 26,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: colors.ink,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.muted,
+      lineHeight: 21,
+    },
+    formContainer: {
+      marginBottom: 24,
+      gap: 16,
+    },
+    error: {
+      color: colors.red,
+      fontSize: 14,
+      marginTop: 8,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+    },
+    footerText: {
+      fontSize: 14,
+      color: colors.muted,
+    },
+    link: {
+      fontSize: 14,
+      color: colors.green,
+      fontWeight: '600',
+    },
+  });
+}

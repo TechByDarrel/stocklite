@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { colors, Field, PrimaryButton, Screen } from '@/components/stock-ui';
+import { Field, PrimaryButton, Screen, useTheme } from '@/components/stock-ui';
 import { useAuth } from '@/context/AuthContext';
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { user, updateProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || user?.businessName || '');
   const [businessName, setBusinessName] = useState(user?.businessName || '');
@@ -35,4 +37,6 @@ export default function EditProfileScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({ error: { color: colors.red, marginBottom: 8 } });
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({ error: { color: colors.red, marginBottom: 8 } });
+}

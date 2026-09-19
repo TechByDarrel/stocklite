@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { useStockLite } from '@/context/StockLiteContext';
-import { DebtRow, EmptyState, PrimaryButton, Screen, SectionHeader, StatCard } from '@/components/stock-ui';
+import { DebtRow, EmptyState, PrimaryButton, Screen, SectionHeader, StatCard, useTheme } from '@/components/stock-ui';
 import { formatNaira } from '@/utils/currency';
 
 function isOverdue(debt: { status: string; dueDate: string }): boolean {
@@ -10,6 +10,8 @@ function isOverdue(debt: { status: string; dueDate: string }): boolean {
 }
 
 export default function DebtsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { debts, markDebtPaid } = useStockLite();
   const [query, setQuery] = useState('');
   const outstanding = debts.filter((debt) => debt.status !== 'Paid');
@@ -36,7 +38,7 @@ export default function DebtsScreen() {
       <PrimaryButton label="Add debt" onPress={() => router.push('/add-debt')} />
       <SectionHeader title="Customer balances" />
       {debts.length > 5 ? (
-        <TextInput accessibilityLabel="Search debts" value={query} onChangeText={setQuery} placeholder="Search by customer name" placeholderTextColor="#9aa59d" style={styles.search} />
+        <TextInput accessibilityLabel="Search debts" value={query} onChangeText={setQuery} placeholder="Search by customer name" placeholderTextColor={colors.muted} style={styles.search} />
       ) : null}
       {filtered.length ? (
         <View>{filtered.map((debt) => <DebtRow key={debt.id} debt={debt} onPaid={() => debt.status !== 'Paid' && markDebtPaid(debt.id)} onPress={() => router.push(`/edit-debt?id=${debt.id}` as never)} />)}</View>
@@ -47,4 +49,6 @@ export default function DebtsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ search: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#dbe4dc', borderRadius: 8, padding: 13, fontSize: 16, color: '#16221c', marginBottom: 10 } });
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({ search: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 13, fontSize: 16, color: colors.ink, marginBottom: 10 } });
+}

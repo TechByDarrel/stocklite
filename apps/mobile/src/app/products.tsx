@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useStockLite } from '@/context/StockLiteContext';
-import { colors, EmptyState, PrimaryButton, ProductRow, Screen } from '@/components/stock-ui';
+import { EmptyState, PrimaryButton, ProductRow, Screen, useTheme } from '@/components/stock-ui';
 
 type SortOption = 'name' | 'stockLow' | 'stockHigh' | 'priceLow' | 'priceHigh';
 
@@ -15,6 +15,8 @@ const sortOptions: { key: SortOption; label: string }[] = [
 ];
 
 export default function ProductsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { products } = useStockLite();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('name');
@@ -41,7 +43,7 @@ export default function ProductsScreen() {
       subtitle={`${products.length} ${products.length === 1 ? 'product' : 'products'} in your shop`}
       action={<Pressable accessibilityRole="button" onPress={() => router.push('/add-product')} style={styles.add}><Text style={styles.addText}>Add product</Text></Pressable>}
     >
-      <TextInput accessibilityLabel="Search products" value={query} onChangeText={setQuery} placeholder="Search products" placeholderTextColor="#9aa59d" style={styles.search} />
+      <TextInput accessibilityLabel="Search products" value={query} onChangeText={setQuery} placeholder="Search products" placeholderTextColor={colors.muted} style={styles.search} />
       {products.length > 1 ? (
         <View style={styles.sortRow}>
           {sortOptions.map((option) => (
@@ -56,13 +58,15 @@ export default function ProductsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  add: { backgroundColor: colors.green, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 7 },
-  addText: { color: colors.white, fontSize: 12, fontWeight: '800' },
-  search: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 13, fontSize: 16, color: colors.ink, marginBottom: 10 },
-  sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  sortChip: { borderWidth: 1, borderColor: colors.line, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.white },
-  sortChipActive: { backgroundColor: colors.green, borderColor: colors.green },
-  sortChipText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  sortChipTextActive: { color: colors.white, fontSize: 12, fontWeight: '700' },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    add: { backgroundColor: colors.green, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 7 },
+    addText: { color: colors.white, fontSize: 12, fontWeight: '800' },
+    search: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 13, fontSize: 16, color: colors.ink, marginBottom: 10 },
+    sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+    sortChip: { borderWidth: 1, borderColor: colors.line, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.white },
+    sortChipActive: { backgroundColor: colors.green, borderColor: colors.green },
+    sortChipText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+    sortChipTextActive: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  });
+}

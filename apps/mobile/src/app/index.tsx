@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useStockLite } from '@/context/StockLiteContext';
 import { useAuth } from '@/context/AuthContext';
-import { ActionTile, colors, EmptyState, ProductRow, SaleRow, Screen, SectionHeader, StatCard, StatRow } from '@/components/stock-ui';
+import { ActionTile, EmptyState, ProductRow, SaleRow, Screen, SectionHeader, StatCard, StatRow, useTheme } from '@/components/stock-ui';
 import { formatNaira } from '@/utils/currency';
 import { getTimeBasedGreeting } from '@/utils/greeting';
 const isToday = (value: string) => new Date(value).toDateString() === new Date().toDateString();
@@ -21,6 +21,8 @@ function useFadeSlide(delay: number) {
 }
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
     const { products, sales, debts, expenses, isLoading } = useStockLite();
   const { user } = useAuth();
 
@@ -47,7 +49,7 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 20 }}>Loading...</Text>
+        <Text style={styles.loading}>Loading...</Text>
       </Screen>
     );
   }
@@ -112,34 +114,37 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: colors.ink,
-    padding: 24,
-    borderRadius: 12,
-    marginTop: 12,
-    marginBottom: 14,
-  },
-  greeting: {
-    color: '#b8d4c1',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  heroTitle: {
-    color: colors.white,
-    fontSize: 27,
-    fontWeight: '800',
-    marginTop: 9,
-  },
-  heroSub: {
-    color: '#d0ddd3',
-    marginTop: 8,
-    lineHeight: 21,
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 10,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    loading: { color: colors.muted, textAlign: 'center', marginTop: 20 },
+    hero: {
+      backgroundColor: colors.ink,
+      padding: 24,
+      borderRadius: 12,
+      marginTop: 12,
+      marginBottom: 14,
+    },
+    greeting: {
+      color: colors.mint,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    heroTitle: {
+      color: colors.white,
+      fontSize: 27,
+      fontWeight: '800',
+      marginTop: 9,
+    },
+    heroSub: {
+      color: colors.mint,
+      marginTop: 8,
+      lineHeight: 21,
+    },
+    actionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 10,
+    },
+  });
+}
