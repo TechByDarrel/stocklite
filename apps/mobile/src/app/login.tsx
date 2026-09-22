@@ -4,6 +4,7 @@ import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-nati
 import { useAuth } from '@/context/AuthContext';
 import { Field, PrimaryButton, SecondaryButton, useTheme } from '@/components/stock-ui';
 import { isBiometricAvailable, authenticateWithBiometrics } from '@/utils/biometrics';
+import { PinInput } from '@/components/pin-input';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
@@ -18,25 +19,34 @@ const attemptsByEmail = new Map<string, { count: number; lockedUntil: number }>(
 export default function LoginScreen() {
   const { colors: c } = useTheme();
   const styles = makeStyles(c);
-  const { login, getBiometricAccount, loginWithBiometricAccount } = useAuth();
+    const { login, getBiometricAccount, loginWithBiometricAccount, getPinAccount, loginWithPin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState<string | null>(null);
+   const [biometricLabel, setBiometricLabel] = useState<string | null>(null);
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [pinLabel, setPinLabel] = useState<string | null>(null);
+  const [showPinEntry, setShowPinEntry] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [isPinLoading, setIsPinLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
       const available = await isBiometricAvailable();
-      if (!available) return;
-      const account = await getBiometricAccount();
-      if (account) {
-        setBiometricLabel(account.displayName || account.businessName || account.email);
+      if (available) {
+        const account = await getBiometricAccount();
+        if (account) {
+          setBiometricLabel(account.displayName || account.businessName || account.email);
+        }
+      }
+      const pinAccount = await getPinAccount();
+      if (pinAccount) {
+        setPinLabel(pinAccount.displayName || pinAccount.businessName || pinAccount.email);
       }
     })();
   }, []);
-
+  
   const handleLogin = async () => {
     setError('');
     const normalizedEmail = email.trim().toLowerCase();
