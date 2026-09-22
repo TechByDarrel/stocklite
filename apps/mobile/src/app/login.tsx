@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { Field, PrimaryButton, useTheme } from '@/components/stock-ui';
+import { Field, PrimaryButton, SecondaryButton, useTheme } from '@/components/stock-ui';
+import { isBiometricAvailable, authenticateWithBiometrics } from '@/utils/biometrics';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
@@ -17,11 +18,24 @@ const attemptsByEmail = new Map<string, { count: number; lockedUntil: number }>(
 export default function LoginScreen() {
   const { colors: c } = useTheme();
   const styles = makeStyles(c);
-  const { login } = useAuth();
+  const { login, getBiometricAccount, loginWithBiometricAccount } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState<string | null>(null);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const available = await isBiometricAvailable();
+      if (!available) return;
+      const account = await getBiometricAccount();
+      if (account) {
+        setBiometricLabel(account.displayName || account.businessName || account.email);
+      }
+    })();
+  }, []);
 
   const handleLogin = async () => {
     setError('');
@@ -71,14 +85,46 @@ export default function LoginScreen() {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    setError('');
+    try {
+      setIsBiometricLoading(true);
+      const account = await getBiometricAccount();
+      if (!account) {
+        setError('No biometric-enabled account found. Please sign in with your password.');
+        return;
+      }
+      const success = await authenticateWithBiometrics();
+      if (!success) {
+        return;
+      }
+      await loginWithBiometricAccount(account);
+      router.replace('/' as never);
+    } catch (err) {
+      setError('Biometric login failed. Please sign in with your password.');
+    } finally {
+      setIsBiometricLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-           <View style={styles.header}>
+      <View style={styles.header}>
         <Image source={require('../../assets/images/icon.png')} style={styles.logo} />
         <Text style={styles.brand}>StockLite</Text>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>Sign in to keep your shop moving.</Text>
       </View>
+
+      {biometricLabel ? (
+        <View style={styles.biometricSection}>
+          <SecondaryButton
+            label={isBiometricLoading ? 'Verifying...' : `Unlock as ${biometricLabel}`}
+            onPress={handleBiometricLogin}
+          />
+          <Text style={styles.orDivider}>or sign in with password</Text>
+        </View>
+      ) : null}
 
       <View style={styles.formContainer}>
         <Field
@@ -102,7 +148,7 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-               <PrimaryButton
+        <PrimaryButton
           label={isLoading ? 'Signing in...' : 'Sign in'}
           onPress={handleLogin}
           disabled={isLoading}
@@ -135,7 +181,7 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: 32,
       paddingHorizontal: 8,
     },
-      logo: {
+    logo: {
       width: 56,
       height: 56,
       borderRadius: 14,
@@ -158,6 +204,15 @@ function makeStyles(colors: ThemeColors) {
       fontSize: 15,
       color: colors.muted,
       lineHeight: 21,
+    },
+    biometricSection: {
+      marginBottom: 20,
+      gap: 8,
+    },
+    orDivider: {
+      textAlign: 'center',
+      color: colors.muted,
+      fontSize: 13,
     },
     formContainer: {
       marginBottom: 24,

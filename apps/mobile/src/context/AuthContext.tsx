@@ -12,6 +12,15 @@ interface User {
   firebaseUid?: string;
 }
 
+interface BiometricAccount {
+  id: string;
+  displayName?: string;
+  email: string;
+  businessName?: string;
+  photoUri?: string;
+  firebaseUid?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
@@ -21,6 +30,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   updateProfile: (displayName: string, businessName: string) => Promise<void>;
   updateProfilePhoto: (photoUri: string | null) => Promise<void>;
+  enableBiometricLogin: () => Promise<void>;
+  disableBiometricLogin: () => Promise<void>;
+  getBiometricAccount: () => Promise<BiometricAccount | null>;
+  loginWithBiometricAccount: (account: BiometricAccount) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -98,6 +111,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         [userId, businessName, email.toLowerCase(), passwordHash, businessName, now, now]
       );
       await db.runAsync(`UPDATE users SET passwordSalt = ? WHERE id = ?`, [salt, userId]);
+      await db.runAsync(`UPDATE users SET lastUsedAt = ? WHERE id = ?`, [now, userId]);
 
       const firebaseUid = await ensureFirebaseAuth(email.toLowerCase(), password, userId);
       if (firebaseUid) {
@@ -144,6 +158,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       const now = new Date().toISOString();
       await db.runAsync(`UPDATE users SET lastLoginAt = ? WHERE id = ?`, [now, record.id]);
+      await db.runAsync(`UPDATE users SET lastUsedAt = ? WHERE id = ?`, [now, record.id]);
 
       let firebaseUid = record.firebaseUid || undefined;
       if (!firebaseUid) {
@@ -201,6 +216,42 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser((current) => current ? { ...current, photoUri: photoUri || undefined } : current);
   };
 
+  const enableBiometricLogin = async () => {
+    if (!user) throw new Error('You must be signed in to enable biometric login');
+    const db = await getDatabase();
+    await db.runAsync('UPDATE users SET biometricEnabled = ? WHERE id = ?', ['true', user.id]);
+  };
+
+  const disableBiometricLogin = async () => {
+    if (!user) throw new Error('You must be signed in to disable biometric login');
+    const db = await getDatabase();
+    await db.runAsync('UPDATE users SET biometricEnabled = ? WHERE id = ?', ['false', user.id]);
+  };
+
+  const getBiometricAccount = async (): Promise<BiometricAccount | null> => {
+    const db = await getDatabase();
+    const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null }>(
+      `SELECT id, displayName, email, businessName, photoUri, firebaseUid FROM users WHERE biometricEnabled = 'true' ORDER BY lastUsedAt DESC LIMIT 1`
+    );
+    if (!record) return null;
+    return {
+      id: record.id,
+      displayName: record.displayName,
+      email: record.email,
+      businessName: record.businessName,
+      photoUri: record.photoUri || undefined,
+      firebaseUid: record.firebaseUid || undefined,
+    };
+  };
+
+  const loginWithBiometricAccount = async (account: BiometricAccount) => {
+    const db = await getDatabase();
+    const now = new Date().toISOString();
+    await db.runAsync(`UPDATE users SET lastLoginAt = ? WHERE id = ?`, [now, account.id]);
+    await db.runAsync(`UPDATE users SET lastUsedAt = ? WHERE id = ?`, [now, account.id]);
+    setUser(account);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -212,6 +263,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         logout,
         updateProfile,
         updateProfilePhoto,
+        enableBiometricLogin,
+        disableBiometricLogin,
+        getBiometricAccount,
+        loginWithBiometricAccount,
       }}
     >
       {children}

@@ -1,14 +1,29 @@
 import { router } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { pickImage, PrimaryButton, Screen, SectionHeader, useTheme } from '@/components/stock-ui';
 import { useAuth } from '@/context/AuthContext';
+import { isBiometricAvailable } from '@/utils/biometrics';
 
 export default function ProfileScreen() {
-  const { user, logout, updateProfilePhoto } = useAuth();
+  const { user, logout, updateProfilePhoto, enableBiometricLogin, disableBiometricLogin, getBiometricAccount } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
   const styles = makeStyles(colors);
   const displayName = user?.displayName || user?.businessName || 'Business owner';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const supported = await isBiometricAvailable();
+      setBiometricSupported(supported);
+      if (supported && user) {
+        const account = await getBiometricAccount();
+        setBiometricOn(account?.id === user.id);
+      }
+    })();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     await logout();
@@ -18,6 +33,20 @@ export default function ProfileScreen() {
   const handleChangePhoto = async () => {
     const uri = await pickImage();
     if (uri) await updateProfilePhoto(uri);
+  };
+
+  const handleToggleBiometric = async () => {
+    try {
+      if (biometricOn) {
+        await disableBiometricLogin();
+        setBiometricOn(false);
+      } else {
+        await enableBiometricLogin();
+        setBiometricOn(true);
+      }
+    } catch {
+      Alert.alert('Something went wrong', 'Could not update biometric login setting. Please try again.');
+    }
   };
 
   return <Screen title="Profile" subtitle="Your account and business details">
@@ -43,11 +72,17 @@ export default function ProfileScreen() {
       <Text style={styles.label}>Business name</Text><Text style={styles.value}>{user?.businessName || 'Not set'}</Text>
       <Text style={styles.label}>Account email</Text><Text style={styles.value}>{user?.email}</Text>
     </View>
-        <SectionHeader title="Preferences" />
+    <SectionHeader title="Preferences" />
     <Pressable accessibilityRole="button" style={styles.action} onPress={toggleTheme}>
       <Text style={styles.actionText}>Dark mode</Text>
       <Text style={styles.toggleValue}>{isDark ? 'On' : 'Off'}</Text>
     </Pressable>
+    {biometricSupported ? (
+      <Pressable accessibilityRole="button" style={styles.action} onPress={handleToggleBiometric}>
+        <Text style={styles.actionText}>Biometric login</Text>
+        <Text style={styles.toggleValue}>{biometricOn ? 'On' : 'Off'}</Text>
+      </Pressable>
+    ) : null}
     <SectionHeader title="Account" />
     <Pressable accessibilityRole="button" style={styles.action} onPress={() => router.push('/edit-profile' as never)}><Text style={styles.actionText}>Edit profile</Text><Text style={styles.chevron}>›</Text></Pressable>
     <PrimaryButton label="Log out" onPress={handleLogout} />
@@ -73,7 +108,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     value: { color: colors.ink, fontWeight: '700', marginBottom: 16 },
     action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     actionText: { color: colors.ink, fontWeight: '700' },
-      chevron: { color: colors.green, fontSize: 24 },
+    chevron: { color: colors.green, fontSize: 24 },
     toggleValue: { color: colors.green, fontWeight: '800', fontSize: 14 },
     note: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 20 },
   });

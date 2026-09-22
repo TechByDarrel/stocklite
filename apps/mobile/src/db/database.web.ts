@@ -15,6 +15,8 @@ interface WebUser extends StoredRecord {
   businessName: string;
   photoUri?: string | null;
   firebaseUid?: string | null;
+  biometricEnabled?: string | null;
+  lastUsedAt?: string | null;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -74,6 +76,20 @@ function createMockDatabase(): SQLiteDatabase {
         const user = readUsers().filter((item) => item.lastLoginAt).sort((a, b) => (b.lastLoginAt || '').localeCompare(a.lastLoginAt || ''))[0];
         return (user ? { id: user.id, displayName: user.displayName, email: user.email, businessName: user.businessName, photoUri: user.photoUri ?? null, firebaseUid: user.firebaseUid ?? null } : null) as T | null;
       }
+      // Biometric login: find the most recently used biometric-enabled account, regardless of login state.
+      if (sql.includes('biometricEnabled')) {
+        const user = readUsers()
+          .filter((item) => item.biometricEnabled === 'true')
+          .sort((a, b) => (b.lastUsedAt || '').localeCompare(a.lastUsedAt || ''))[0];
+        return (user ? {
+          id: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          businessName: user.businessName,
+          photoUri: user.photoUri ?? null,
+          firebaseUid: user.firebaseUid ?? null,
+        } : null) as T | null;
+      }
       // Sync service: looks up just the firebaseUid for a given local user id.
       if (sql.includes('SELECT firebaseUid FROM users')) {
         const user = readUsers().find((item) => item.id === params[0]);
@@ -110,7 +126,7 @@ function createMockDatabase(): SQLiteDatabase {
       let changes = 1;
       if (sql.includes('INSERT INTO users')) {
         const [id, displayName, email, passwordHash, businessName, createdAt, lastLoginAt] = params;
-        writeUsers([...readUsers(), { id, displayName, email, passwordHash, passwordSalt: null, businessName, photoUri: null, firebaseUid: null, createdAt, lastLoginAt }]);
+        writeUsers([...readUsers(), { id, displayName, email, passwordHash, passwordSalt: null, businessName, photoUri: null, firebaseUid: null, biometricEnabled: null, lastUsedAt: lastLoginAt, createdAt, lastLoginAt }]);
       } else if (sql.includes('UPDATE users SET displayName')) {
         const [displayName, businessName, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, displayName, businessName } : user));
@@ -126,6 +142,12 @@ function createMockDatabase(): SQLiteDatabase {
       } else if (sql.includes('UPDATE users SET firebaseUid')) {
         const [firebaseUid, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, firebaseUid } : user));
+      } else if (sql.includes('UPDATE users SET biometricEnabled')) {
+        const [biometricEnabled, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, biometricEnabled } : user));
+      } else if (sql.includes('UPDATE users SET lastUsedAt')) {
+        const [lastUsedAt, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, lastUsedAt } : user));
       } else if (sql.includes('UPDATE users SET lastLoginAt')) {
         const isLogout = sql.includes('SET lastLoginAt = NULL');
         const id = isLogout ? params[0] : params[1];

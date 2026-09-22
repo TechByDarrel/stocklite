@@ -39,7 +39,7 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS users (
+       CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       displayName TEXT,
       email TEXT UNIQUE NOT NULL,
@@ -48,6 +48,8 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       businessName TEXT,
       photoUri TEXT,
       firebaseUid TEXT,
+      biometricEnabled TEXT,
+      lastUsedAt TEXT,
       createdAt TEXT NOT NULL,
       lastLoginAt TEXT
     );
@@ -153,7 +155,9 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   await addColumn('sale_items', 'syncedAt');
   await addColumn('expenses', 'syncedAt');
   await addColumn('debts', 'syncedAt');
-  await addColumn('users', 'firebaseUid');
+   await addColumn('users', 'firebaseUid');
+  await addColumn('users', 'biometricEnabled');
+  await addColumn('users', 'lastUsedAt');
 
   if (legacyOwner) {
     for (const table of ['products', 'sales', 'sale_items', 'expenses', 'debts']) {
