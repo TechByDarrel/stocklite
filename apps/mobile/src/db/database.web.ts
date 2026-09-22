@@ -15,8 +15,10 @@ interface WebUser extends StoredRecord {
   businessName: string;
   photoUri?: string | null;
   firebaseUid?: string | null;
-  biometricEnabled?: string | null;
+   biometricEnabled?: string | null;
   lastUsedAt?: string | null;
+  pinHash?: string | null;
+  pinSalt?: string | null;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -90,6 +92,22 @@ function createMockDatabase(): SQLiteDatabase {
           firebaseUid: user.firebaseUid ?? null,
         } : null) as T | null;
       }
+           // PIN login: fetch pinHash/pinSalt for the most recently used PIN-enabled account.
+      if (sql.includes('pinHash') && sql.includes('ORDER BY lastUsedAt')) {
+        const user = readUsers()
+          .filter((item) => item.pinHash)
+          .sort((a, b) => (b.lastUsedAt || '').localeCompare(a.lastUsedAt || ''))[0];
+        return (user ? {
+          id: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          businessName: user.businessName,
+          photoUri: user.photoUri ?? null,
+          firebaseUid: user.firebaseUid ?? null,
+          pinHash: user.pinHash,
+          pinSalt: user.pinSalt,
+        } : null) as T | null;
+      }
       // Sync service: looks up just the firebaseUid for a given local user id.
       if (sql.includes('SELECT firebaseUid FROM users')) {
         const user = readUsers().find((item) => item.id === params[0]);
@@ -142,9 +160,12 @@ function createMockDatabase(): SQLiteDatabase {
       } else if (sql.includes('UPDATE users SET firebaseUid')) {
         const [firebaseUid, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, firebaseUid } : user));
-      } else if (sql.includes('UPDATE users SET biometricEnabled')) {
+           } else if (sql.includes('UPDATE users SET biometricEnabled')) {
         const [biometricEnabled, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, biometricEnabled } : user));
+      } else if (sql.includes('UPDATE users SET pinHash')) {
+        const [pinHash, pinSalt, id] = params;
+        writeUsers(readUsers().map((user) => user.id === id ? { ...user, pinHash, pinSalt } : user));
       } else if (sql.includes('UPDATE users SET lastUsedAt')) {
         const [lastUsedAt, id] = params;
         writeUsers(readUsers().map((user) => user.id === id ? { ...user, lastUsedAt } : user));

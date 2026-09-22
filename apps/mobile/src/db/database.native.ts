@@ -48,8 +48,10 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       businessName TEXT,
       photoUri TEXT,
       firebaseUid TEXT,
-      biometricEnabled TEXT,
+           biometricEnabled TEXT,
       lastUsedAt TEXT,
+      pinHash TEXT,
+      pinSalt TEXT,
       createdAt TEXT NOT NULL,
       lastLoginAt TEXT
     );
@@ -156,8 +158,10 @@ async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   await addColumn('expenses', 'syncedAt');
   await addColumn('debts', 'syncedAt');
    await addColumn('users', 'firebaseUid');
-  await addColumn('users', 'biometricEnabled');
+    await addColumn('users', 'biometricEnabled');
   await addColumn('users', 'lastUsedAt');
+  await addColumn('users', 'pinHash');
+  await addColumn('users', 'pinSalt');
 
   if (legacyOwner) {
     for (const table of ['products', 'sales', 'sale_items', 'expenses', 'debts']) {

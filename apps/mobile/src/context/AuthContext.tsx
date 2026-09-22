@@ -30,10 +30,15 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   updateProfile: (displayName: string, businessName: string) => Promise<void>;
   updateProfilePhoto: (photoUri: string | null) => Promise<void>;
-  enableBiometricLogin: () => Promise<void>;
+   enableBiometricLogin: () => Promise<void>;
   disableBiometricLogin: () => Promise<void>;
   getBiometricAccount: () => Promise<BiometricAccount | null>;
   loginWithBiometricAccount: (account: BiometricAccount) => Promise<void>;
+  setPin: (pin: string) => Promise<void>;
+  clearPin: () => Promise<void>;
+  hasPinSet: () => Promise<boolean>;
+  getPinAccount: () => Promise<BiometricAccount | null>;
+  loginWithPin: (pin: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -228,7 +233,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await db.runAsync('UPDATE users SET biometricEnabled = ? WHERE id = ?', ['false', user.id]);
   };
 
-  const getBiometricAccount = async (): Promise<BiometricAccount | null> => {
+    const getBiometricAccount = async (): Promise<BiometricAccount | null> => {
     const db = await getDatabase();
     const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null }>(
       `SELECT id, displayName, email, businessName, photoUri, firebaseUid FROM users WHERE biometricEnabled = 'true' ORDER BY lastUsedAt DESC LIMIT 1`
@@ -242,6 +247,71 @@ export function AuthProvider({ children }: PropsWithChildren) {
       photoUri: record.photoUri || undefined,
       firebaseUid: record.firebaseUid || undefined,
     };
+  };
+
+  const setPin = async (pin: string) => {
+    if (!user) throw new Error('You must be signed in to set a PIN');
+    const db = await getDatabase();
+    const salt = await generateSalt();
+    const hash = await hashPassword(pin, salt);
+    await db.runAsync('UPDATE users SET pinHash = ?, pinSalt = ? WHERE id = ?', [hash, salt, user.id]);
+  };
+
+  const clearPin = async () => {
+    if (!user) throw new Error('You must be signed in to clear a PIN');
+    const db = await getDatabase();
+    await db.runAsync('UPDATE users SET pinHash = ?, pinSalt = ? WHERE id = ?', [null, null, user.id]);
+  };
+
+  const hasPinSet = async (): Promise<boolean> => {
+    if (!user) return false;
+    const db = await getDatabase();
+    const record = await db.getFirstAsync<{ pinHash: string | null }>(
+      `SELECT pinHash FROM users WHERE id = ?`,
+      [user.id]
+    );
+    return Boolean(record?.pinHash);
+  };
+
+  const getPinAccount = async (): Promise<BiometricAccount | null> => {
+    const db = await getDatabase();
+    const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null; pinHash: string | null; pinSalt: string | null }>(
+      `SELECT id, displayName, email, businessName, photoUri, firebaseUid, pinHash, pinSalt FROM users WHERE pinHash IS NOT NULL ORDER BY lastUsedAt DESC LIMIT 1`
+    );
+    if (!record) return null;
+    return {
+      id: record.id,
+      displayName: record.displayName,
+      email: record.email,
+      businessName: record.businessName,
+      photoUri: record.photoUri || undefined,
+      firebaseUid: record.firebaseUid || undefined,
+    };
+  };
+
+  const loginWithPin = async (pin: string): Promise<boolean> => {
+    const db = await getDatabase();
+    const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null; pinHash: string | null; pinSalt: string | null }>(
+      `SELECT id, displayName, email, businessName, photoUri, firebaseUid, pinHash, pinSalt FROM users WHERE pinHash IS NOT NULL ORDER BY lastUsedAt DESC LIMIT 1`
+    );
+    if (!record || !record.pinHash || !record.pinSalt) return false;
+
+    const attemptedHash = await hashPassword(pin, record.pinSalt);
+    if (attemptedHash !== record.pinHash) return false;
+
+    const now = new Date().toISOString();
+    await db.runAsync(`UPDATE users SET lastLoginAt = ? WHERE id = ?`, [now, record.id]);
+    await db.runAsync(`UPDATE users SET lastUsedAt = ? WHERE id = ?`, [now, record.id]);
+
+    setUser({
+      id: record.id,
+      displayName: record.displayName,
+      email: record.email,
+      businessName: record.businessName,
+      photoUri: record.photoUri || undefined,
+      firebaseUid: record.firebaseUid || undefined,
+    });
+    return true;
   };
 
   const loginWithBiometricAccount = async (account: BiometricAccount) => {
@@ -263,10 +333,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
         logout,
         updateProfile,
         updateProfilePhoto,
-        enableBiometricLogin,
+               enableBiometricLogin,
         disableBiometricLogin,
         getBiometricAccount,
         loginWithBiometricAccount,
+        setPin,
+        clearPin,
+        hasPinSet,
+        getPinAccount,
+        loginWithPin,
       }}
     >
       {children}
