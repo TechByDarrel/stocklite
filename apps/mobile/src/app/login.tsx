@@ -19,12 +19,12 @@ const attemptsByEmail = new Map<string, { count: number; lockedUntil: number }>(
 export default function LoginScreen() {
   const { colors: c } = useTheme();
   const styles = makeStyles(c);
-    const { login, getBiometricAccount, loginWithBiometricAccount, getPinAccount, loginWithPin } = useAuth();
+  const { login, getBiometricAccount, loginWithBiometricAccount, getPinAccount, loginWithPin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-   const [biometricLabel, setBiometricLabel] = useState<string | null>(null);
+  const [biometricLabel, setBiometricLabel] = useState<string | null>(null);
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [pinLabel, setPinLabel] = useState<string | null>(null);
   const [showPinEntry, setShowPinEntry] = useState(false);
@@ -46,7 +46,7 @@ export default function LoginScreen() {
       }
     })();
   }, []);
-  
+
   const handleLogin = async () => {
     setError('');
     const normalizedEmail = email.trim().toLowerCase();
@@ -117,6 +117,27 @@ export default function LoginScreen() {
     }
   };
 
+  const handlePinChange = async (value: string) => {
+    setPinValue(value);
+    if (value.length !== 4) return;
+    setError('');
+    try {
+      setIsPinLoading(true);
+      const success = await loginWithPin(value);
+      if (success) {
+        router.replace('/' as never);
+      } else {
+        setError('Incorrect PIN. Please try again.');
+        setPinValue('');
+      }
+    } catch {
+      setError('PIN login failed. Please sign in with your password.');
+      setPinValue('');
+    } finally {
+      setIsPinLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
@@ -132,9 +153,30 @@ export default function LoginScreen() {
             label={isBiometricLoading ? 'Verifying...' : `Unlock as ${biometricLabel}`}
             onPress={handleBiometricLogin}
           />
-          <Text style={styles.orDivider}>or sign in with password</Text>
         </View>
       ) : null}
+
+      {pinLabel && !showPinEntry ? (
+        <View style={styles.biometricSection}>
+          <SecondaryButton
+            label={`Unlock ${pinLabel} with PIN`}
+            onPress={() => setShowPinEntry(true)}
+          />
+        </View>
+      ) : null}
+
+      {pinLabel && showPinEntry ? (
+        <View style={styles.pinSection}>
+          <Text style={styles.pinPrompt}>Enter your PIN</Text>
+          <PinInput value={pinValue} onChangeText={handlePinChange} length={4} />
+          {isPinLoading ? <Text style={styles.orDivider}>Verifying...</Text> : null}
+          <Pressable onPress={() => { setShowPinEntry(false); setPinValue(''); setError(''); }}>
+            <Text style={styles.link}>Use password instead</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {(biometricLabel || pinLabel) ? <Text style={styles.orDivider}>or sign in with password</Text> : null}
 
       <View style={styles.formContainer}>
         <Field
@@ -219,10 +261,21 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: 20,
       gap: 8,
     },
+    pinSection: {
+      alignItems: 'center',
+      marginBottom: 20,
+      gap: 12,
+    },
+    pinPrompt: {
+      color: colors.ink,
+      fontWeight: '700',
+      fontSize: 15,
+    },
     orDivider: {
       textAlign: 'center',
       color: colors.muted,
       fontSize: 13,
+      marginBottom: 12,
     },
     formContainer: {
       marginBottom: 24,

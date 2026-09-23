@@ -8,10 +8,8 @@ export async function isBiometricAvailable(): Promise<boolean> {
 
 export async function authenticateWithBiometrics(): Promise<boolean> {
   try {
-    const result = await LocalAuthentication.authenticateAsync({
+       const result = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Log in to StockLite',
-      fallbackLabel: 'Use password instead',
-      cancelLabel: 'Cancel',
     });
     return result.success;
   } catch (error) {
