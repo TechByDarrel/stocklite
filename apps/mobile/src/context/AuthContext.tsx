@@ -39,6 +39,7 @@ interface AuthContextValue {
   hasPinSet: () => Promise<boolean>;
   getPinAccount: () => Promise<BiometricAccount | null>;
   loginWithPin: (pin: string) => Promise<boolean>;
+  verifyPin: (pin: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -289,6 +290,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   };
 
+   const verifyPin = async (pin: string): Promise<boolean> => {
+    if (!user) return false;
+    const db = await getDatabase();
+    const record = await db.getFirstAsync<{ pinHash: string | null; pinSalt: string | null }>(
+      `SELECT pinHash, pinSalt FROM users WHERE id = ?`,
+      [user.id]
+    );
+    if (!record || !record.pinHash || !record.pinSalt) return false;
+    const attemptedHash = await hashPassword(pin, record.pinSalt);
+    return attemptedHash === record.pinHash;
+  };
+
   const loginWithPin = async (pin: string): Promise<boolean> => {
     const db = await getDatabase();
     const record = await db.getFirstAsync<{ id: string; displayName: string; email: string; businessName: string; photoUri: string | null; firebaseUid: string | null; pinHash: string | null; pinSalt: string | null }>(
@@ -337,11 +350,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
         disableBiometricLogin,
         getBiometricAccount,
         loginWithBiometricAccount,
-        setPin,
+               setPin,
         clearPin,
         hasPinSet,
         getPinAccount,
         loginWithPin,
+        verifyPin,
       }}
     >
       {children}
