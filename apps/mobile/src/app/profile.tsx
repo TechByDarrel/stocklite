@@ -4,17 +4,18 @@ import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { pickImage, PrimaryButton, Screen, SectionHeader, useTheme } from '@/components/stock-ui';
 import { useAuth } from '@/context/AuthContext';
 import { isBiometricAvailable } from '@/utils/biometrics';
-import { router as expoRouter } from 'expo-router';
+import { exportAllData } from '@/utils/exportData';
 
 export default function ProfileScreen() {
-   const { user, logout, updateProfilePhoto, enableBiometricLogin, disableBiometricLogin, getBiometricAccount, hasPinSet, clearPin } = useAuth();
+  const { user, logout, updateProfilePhoto, enableBiometricLogin, disableBiometricLogin, getBiometricAccount, hasPinSet } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
   const styles = makeStyles(colors);
   const displayName = user?.displayName || user?.businessName || 'Business owner';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-    const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
   const [pinSet, setPinSet] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -24,8 +25,7 @@ export default function ProfileScreen() {
         const account = await getBiometricAccount();
         setBiometricOn(account?.id === user.id);
       }
-      const has = await hasPinSet();
-      setPinSet(has);
+      setPinSet(await hasPinSet());
     })();
   }, [user?.id]);
 
@@ -50,6 +50,17 @@ export default function ProfileScreen() {
       }
     } catch {
       Alert.alert('Something went wrong', 'Could not update biometric login setting. Please try again.');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      await exportAllData();
+    } catch {
+      Alert.alert('Export failed', 'Could not export your data. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -81,19 +92,20 @@ export default function ProfileScreen() {
       <Text style={styles.actionText}>Dark mode</Text>
       <Text style={styles.toggleValue}>{isDark ? 'On' : 'Off'}</Text>
     </Pressable>
-        {biometricSupported ? (
+    {biometricSupported ? (
       <Pressable accessibilityRole="button" style={styles.action} onPress={handleToggleBiometric}>
         <Text style={styles.actionText}>Biometric login</Text>
         <Text style={styles.toggleValue}>{biometricOn ? 'On' : 'Off'}</Text>
       </Pressable>
     ) : null}
-    <Pressable
-      accessibilityRole="button"
-      style={styles.action}
-      onPress={() => router.push(pinSet ? '/change-pin' as never : '/set-pin' as never)}
-    >
+    <Pressable accessibilityRole="button" style={styles.action} onPress={() => router.push((pinSet ? '/change-pin' : '/set-pin') as never)}>
       <Text style={styles.actionText}>PIN login</Text>
       <Text style={styles.toggleValue}>{pinSet ? 'On' : 'Off'}</Text>
+    </Pressable>
+    <SectionHeader title="Data" />
+    <Pressable accessibilityRole="button" style={styles.action} onPress={handleExport} disabled={isExporting}>
+      <Text style={styles.actionText}>Export my data</Text>
+      <Text style={styles.toggleValue}>{isExporting ? 'Exporting...' : 'Backup'}</Text>
     </Pressable>
     <SectionHeader title="Account" />
     <Pressable accessibilityRole="button" style={styles.action} onPress={() => router.push('/edit-profile' as never)}><Text style={styles.actionText}>Edit profile</Text><Text style={styles.chevron}>›</Text></Pressable>
@@ -118,7 +130,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     details: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 16 },
     label: { color: colors.muted, fontSize: 12, marginBottom: 4 },
     value: { color: colors.ink, fontWeight: '700', marginBottom: 16 },
-    action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    action: { minHeight: 48, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
     actionText: { color: colors.ink, fontWeight: '700' },
     chevron: { color: colors.green, fontSize: 24 },
     toggleValue: { color: colors.green, fontWeight: '800', fontSize: 14 },
