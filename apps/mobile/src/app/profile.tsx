@@ -107,6 +107,18 @@ export default function ProfileScreen() {
       <Text style={styles.actionText}>Export my data</Text>
       <Text style={styles.toggleValue}>{isExporting ? 'Exporting...' : 'Backup'}</Text>
     </Pressable>
+    <SectionHeader title="Help & legal" />
+    {[
+      ['Help & FAQ', '/help'],
+      ['About StockLite', '/about'],
+      ['Privacy policy', '/privacy'],
+      ['Terms of use', '/terms'],
+    ].map(([label, path]) => (
+      <Pressable key={path} accessibilityRole="button" style={styles.action} onPress={() => router.push(path as never)}>
+        <Text style={styles.actionText}>{label}</Text>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+    ))}
     <SectionHeader title="Account" />
     <Pressable accessibilityRole="button" style={styles.action} onPress={() => router.push('/edit-profile' as never)}><Text style={styles.actionText}>Edit profile</Text><Text style={styles.chevron}>›</Text></Pressable>
     <PrimaryButton label="Log out" onPress={handleLogout} />
